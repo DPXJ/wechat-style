@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>摸鱼排版器 - 深色风格微信公众号排版工具</title>
+    <title>镜哥排版器 - 镜哥AI排版 · 微信公众号排版工具</title>
     <style>
         /* ========== RESET & BASE ========== */
         *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
@@ -325,6 +325,48 @@
             font-family: inherit;
         }
 
+        /* ========== AI SETTINGS OVERLAY ========== */
+        .ai-settings-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.6);
+            z-index: 100;
+        }
+        .ai-settings-overlay.active { display: flex; align-items: center; justify-content: center; }
+        .ai-settings-modal {
+            background: #1a1a1e;
+            border: 1px solid #2a2a2e;
+            border-radius: 16px;
+            padding: 32px;
+            width: 520px;
+            max-height: 85vh;
+            overflow-y: auto;
+        }
+        .ai-settings-modal h3 { font-size: 18px; color: #fff; margin-bottom: 8px; }
+        .ai-settings-modal p { font-size: 13px; color: #888; margin-bottom: 20px; }
+        .ai-settings-modal .setting-group { margin-bottom: 18px; }
+        .ai-settings-modal label { display: block; font-size: 13px; color: #888; margin-bottom: 6px; }
+        .ai-settings-modal input[type="text"],
+        .ai-settings-modal input[type="password"] {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #2a2a2e;
+            border-radius: 8px;
+            background: #0e0e12;
+            color: #d0d0d0;
+            font-size: 13px;
+            font-family: inherit;
+        }
+        .ai-settings-modal input:focus { outline: none; border-color: #2dd4a8; }
+        .ai-settings-modal .btn-save { margin-top: 8px; padding: 10px 24px; border: none; border-radius: 8px; background: #2dd4a8; color: #0a0a0c; font-weight: 600; cursor: pointer; font-family: inherit; }
+        .ai-settings-modal .btn-save:hover { background: #25b893; }
+        .ai-loading { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 150; align-items: center; justify-content: center; }
+        .ai-loading.active { display: flex; }
+        .ai-loading .spinner { width: 40px; height: 40px; border: 3px solid #2a2a2e; border-top-color: #2dd4a8; border-radius: 50%; animation: spin 0.8s linear infinite; }
+        .ai-loading .text { margin-top: 16px; color: #aaa; font-size: 14px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
         /* ========== TOAST NOTIFICATION ========== */
         .toast {
             position: fixed;
@@ -418,7 +460,7 @@
     <!-- TOOLBAR -->
     <div class="toolbar">
         <div class="toolbar-left">
-            <div class="toolbar-logo">摸鱼排版器 <span id="toolbar-theme-label">深色科技</span></div>
+            <div class="toolbar-logo">镜哥排版器 <span id="toolbar-theme-label">镜哥AI排版</span></div>
             <select id="template-select" class="template-select" onchange="applyTemplate(this.value)" title="选择排版模板">
                 <option value="dark-teal">深色科技</option>
                 <option value="dark-orange">深色暖橙</option>
@@ -434,8 +476,10 @@
             <div class="toolbar-sep"></div>
             <button class="toolbar-btn" onclick="loadExample()">示例</button>
             <button class="toolbar-btn" onclick="optimizeMarkdown()" title="将简单 Markdown 转为排版增强格式">智能优化</button>
+            <button class="toolbar-btn" id="btn-ai-optimize" onclick="runAIOptimize()" title="用 AI 根据内容自动适配模板风格">AI 优化</button>
             <button class="toolbar-btn" onclick="openHelp()">语法</button>
             <button class="toolbar-btn" onclick="openSettings()">设置</button>
+            <button class="toolbar-btn" onclick="openAISettings()" title="配置 AI API">AI 设置</button>
         </div>
         <div class="toolbar-right">
             <button class="btn-outline" onclick="copySource()">复制源码</button>
@@ -588,6 +632,35 @@
         </div>
     </div>
 
+    <!-- AI SETTINGS OVERLAY -->
+    <div class="ai-settings-overlay" id="ai-settings-overlay" onclick="if(event.target===this)closeAISettings()">
+        <div class="ai-settings-modal">
+            <h3>AI 设置</h3>
+            <p>配置 OpenAI 或兼容接口后，可使用「AI 优化」将普通 Markdown 自动改写成适配当前模板的精致排版。</p>
+            <div class="setting-group">
+                <label>API Key（必填）</label>
+                <input type="password" id="ai-api-key" placeholder="sk-xxx" autocomplete="off">
+            </div>
+            <div class="setting-group">
+                <label>API 地址（可选，默认 OpenAI）</label>
+                <input type="text" id="ai-api-url" placeholder="https://api.openai.com/v1/chat/completions">
+            </div>
+            <div class="setting-group">
+                <label>模型（可选）</label>
+                <input type="text" id="ai-model" placeholder="gpt-4o 或 gpt-3.5-turbo">
+            </div>
+            <button class="btn-save" onclick="saveAISettings()">保存</button>
+        </div>
+    </div>
+
+    <!-- AI 优化加载中 -->
+    <div class="ai-loading" id="ai-loading">
+        <div style="text-align:center;">
+            <div class="spinner"></div>
+            <div class="text" id="ai-loading-text">AI 正在优化排版…</div>
+        </div>
+    </div>
+
     <!-- TOAST -->
     <div class="toast" id="toast"></div>
 
@@ -672,7 +745,6 @@
     function applyTemplate(id) {
         if (!TEMPLATES[id]) return;
         CONFIG = { ...TEMPLATES[id] };
-        document.getElementById('toolbar-theme-label').textContent = CONFIG.name;
         let sel = document.getElementById('template-select');
         if (sel) sel.value = id;
         syncSettingsFromConfig();
@@ -1437,6 +1509,114 @@
     function closeHelp() {
         document.getElementById('help-overlay').classList.remove('active');
     }
+
+    /* ================================================================
+       AI 设置与 AI 优化
+    ================================================================ */
+    const AI_STORAGE_KEY = 'jingge_ai_config';
+
+    function getAIConfig() {
+        try {
+            let raw = localStorage.getItem(AI_STORAGE_KEY);
+            if (raw) return JSON.parse(raw);
+        } catch (e) {}
+        return { apiKey: '', apiUrl: 'https://api.openai.com/v1/chat/completions', model: 'gpt-4o' };
+    }
+
+    function openAISettings() {
+        let c = getAIConfig();
+        document.getElementById('ai-api-key').value = c.apiKey || '';
+        document.getElementById('ai-api-url').value = c.apiUrl || 'https://api.openai.com/v1/chat/completions';
+        document.getElementById('ai-model').value = c.model || 'gpt-4o';
+        document.getElementById('ai-settings-overlay').classList.add('active');
+    }
+
+    function closeAISettings() {
+        document.getElementById('ai-settings-overlay').classList.remove('active');
+    }
+
+    function saveAISettings() {
+        let apiKey = document.getElementById('ai-api-key').value.trim();
+        let apiUrl = document.getElementById('ai-api-url').value.trim() || 'https://api.openai.com/v1/chat/completions';
+        let model = document.getElementById('ai-model').value.trim() || 'gpt-4o';
+        localStorage.setItem(AI_STORAGE_KEY, JSON.stringify({ apiKey, apiUrl, model }));
+        closeAISettings();
+        showToast('AI 设置已保存');
+    }
+
+    const AI_SYSTEM_PROMPT = `你是一个微信公众号排版助手。用户会给你一段普通 Markdown 文档，你需要改写成「镜哥排版器」支持的增强格式，使排版精致、符合模板风格。要求：
+
+1. 在文档最开头添加 YAML front matter（用 --- 包裹），包含以下字段（根据正文推断）：
+   - subtitle: 简短副标题/分类
+   - title: 主标题，若需两行用 \\n 连接，如 "第一行\\n第二行"
+   - tags: 3 个左右关键词，逗号分隔
+   - banner: 一句吸引人的信息栏文案
+   - steps: 若有步骤结构，用 "步骤名|副标题" 逗号分隔，如 "准备|先定调, 执行|再出图"
+
+2. 正文中的一级标题（#）可并入 front matter 的 title，或保留为正文首句。二级标题（##）改为带编号形式：## 01 标题、## 02 标题……
+
+3. 对重要概念使用 ==高亮==，适当使用 **粗体**。
+
+4. 若有清单、要点列表，可改为 :::checklist 标题 块，内容用 - 列表项。
+
+5. 需要强调的提示用 :::info 或 > [!tip] 等形式。
+
+6. 只输出改写后的完整 Markdown，不要解释、不要前后缀。保留用户原有的图片链接或占位。`;
+
+    async function runAIOptimize() {
+        let c = getAIConfig();
+        if (!c.apiKey) {
+            openAISettings();
+            showToast('请先配置 API Key');
+            return;
+        }
+        let md = document.getElementById('markdown-input').value.trim();
+        if (!md) {
+            showToast('请先输入或粘贴 Markdown 内容');
+            return;
+        }
+        let loading = document.getElementById('ai-loading');
+        let loadingText = document.getElementById('ai-loading-text');
+        loadingText.textContent = 'AI 正在优化排版…';
+        loading.classList.add('active');
+        try {
+            let res = await fetch(c.apiUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + c.apiKey
+                },
+                body: JSON.stringify({
+                    model: c.model,
+                    messages: [
+                        { role: 'system', content: AI_SYSTEM_PROMPT },
+                        { role: 'user', content: '请将以下 Markdown 改写成符合镜哥排版器模板的增强格式：\n\n' + md }
+                    ],
+                    temperature: 0.3
+                })
+            });
+            if (!res.ok) {
+                let err = await res.text();
+                throw new Error(res.status + ' ' + err.slice(0, 200));
+            }
+            let data = await res.json();
+            let content = data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
+            if (!content || typeof content !== 'string') throw new Error('API 返回格式异常');
+            content = content.trim();
+            if (content.startsWith('```')) {
+                content = content.replace(/^```\w*\n?/, '').replace(/\n?```\s*$/, '');
+            }
+            document.getElementById('markdown-input').value = content;
+            updatePreview();
+            showToast('AI 优化完成');
+        } catch (err) {
+            loadingText.textContent = '优化失败';
+            showToast('AI 调用失败: ' + (err.message || String(err)));
+        } finally {
+            loading.classList.remove('active');
+        }
+    }
+
     function updateSetting() {
         CONFIG.accent = document.getElementById('s-accent').value;
         CONFIG.fontSize = parseInt(document.getElementById('s-fontsize').value);
@@ -1613,6 +1793,7 @@ Nano Banana 2 的批量功能非常强大：
         if (e.key === 'Escape') {
             closeSettings();
             closeHelp();
+            closeAISettings();
         }
     });
 
@@ -1656,14 +1837,17 @@ Nano Banana 2 的批量功能非常强大：
             }
         }
 
-        // 2. 富文本 HTML 中的图片（如从飞书复制）
+        // 2. 富文本 HTML（如从飞书复制）：同时保留正文和图片
+        let plain = e.clipboardData.getData('text/plain');
         let html = e.clipboardData.getData('text/html');
         if (html && html.indexOf('<img') !== -1) {
             let doc = new DOMParser().parseFromString(html, 'text/html');
             let imgs = doc.querySelectorAll('img');
-            if (imgs.length > 0) {
+            if (imgs.length > 0 || plain.trim() !== '') {
                 e.preventDefault();
-                let parts = [];
+                // 优先插入纯文本（Markdown 正文），再追加图片
+                let textInsert = plain.trim() ? plain : '';
+                let imageParts = [];
                 for (let img of imgs) {
                     let src = img.getAttribute('src') || '';
                     if (!src) continue;
@@ -1681,16 +1865,20 @@ Nano Banana 2 的批量功能非常强大：
                             showToast('图片链接无法转 Base64（跨域），已保留原链接');
                         }
                     }
-                    parts.push('![](' + dataUrl + ')');
+                    imageParts.push('![](' + dataUrl + ')');
                 }
-                let insert = '\n' + parts.join('\n') + '\n';
+                let insert = textInsert + (textInsert && imageParts.length ? '\n\n' : '') + (imageParts.length ? imageParts.join('\n') + '\n' : '');
+                if (!insert) return;
                 ta.value = ta.value.substring(0, start) + insert + ta.value.substring(end);
                 ta.selectionStart = ta.selectionEnd = start + insert.length;
                 updatePreview();
-                showToast('已插入 ' + parts.length + ' 张图片');
+                if (imageParts.length && textInsert) showToast('已粘贴正文与 ' + imageParts.length + ' 张图片');
+                else if (imageParts.length) showToast('已插入 ' + imageParts.length + ' 张图片');
+                else showToast('已粘贴正文');
                 return;
             }
         }
+        // 3. 仅纯文本（如从编辑器复制的 Markdown）：不拦截，交给浏览器默认粘贴
     });
 
     /* ================================================================
