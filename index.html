@@ -1,0 +1,1705 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>摸鱼排版器 - 深色风格微信公众号排版工具</title>
+    <style>
+        /* ========== RESET & BASE ========== */
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { height: 100%; overflow: hidden; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+            background: #0a0a0c;
+            color: #e0e0e0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ========== TOOLBAR ========== */
+        .toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            height: 52px;
+            background: #141418;
+            border-bottom: 1px solid #2a2a2e;
+            flex-shrink: 0;
+        }
+        .toolbar-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        .toolbar-logo {
+            font-size: 16px;
+            font-weight: 700;
+            color: #2dd4a8;
+            letter-spacing: 1px;
+        }
+        .toolbar-logo span {
+            color: #666;
+            font-weight: 400;
+            font-size: 13px;
+            margin-left: 8px;
+        }
+        .template-select {
+            padding: 5px 10px;
+            border-radius: 6px;
+            border: 1px solid #2a2a2e;
+            background: #1a1a1e;
+            color: #c8c8c8;
+            font-size: 13px;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        .template-select:focus { outline: none; border-color: #2dd4a8; }
+        .toolbar-center {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .toolbar-btn {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 6px;
+            background: transparent;
+            color: #999;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+        .toolbar-btn:hover {
+            background: #1e1e24;
+            color: #e0e0e0;
+        }
+        .toolbar-btn.active {
+            background: #2dd4a8;
+            color: #0a0a0c;
+            font-weight: 600;
+        }
+        .toolbar-sep {
+            width: 1px;
+            height: 20px;
+            background: #2a2a2e;
+            margin: 0 8px;
+        }
+        .toolbar-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn-copy {
+            padding: 7px 20px;
+            border: none;
+            border-radius: 8px;
+            background: #2dd4a8;
+            color: #0a0a0c;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+        .btn-copy:hover { background: #25b893; transform: translateY(-1px); }
+        .btn-copy:active { transform: translateY(0); }
+        .btn-copy.copied {
+            background: #4ade80;
+            animation: copyPulse 0.4s ease;
+        }
+        @keyframes copyPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        .btn-outline {
+            padding: 7px 16px;
+            border: 1px solid #2a2a2e;
+            border-radius: 8px;
+            background: transparent;
+            color: #999;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+        .btn-outline:hover {
+            border-color: #2dd4a8;
+            color: #2dd4a8;
+        }
+
+        /* ========== MAIN LAYOUT ========== */
+        .main {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* ========== EDITOR PANEL ========== */
+        .editor-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid #2a2a2e;
+            min-width: 0;
+        }
+        .panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 16px;
+            height: 36px;
+            background: #111114;
+            border-bottom: 1px solid #1e1e22;
+            flex-shrink: 0;
+        }
+        .panel-title {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .editor-area {
+            flex: 1;
+            overflow: hidden;
+        }
+        #markdown-input {
+            width: 100%;
+            height: 100%;
+            padding: 20px 24px;
+            border: none;
+            outline: none;
+            resize: none;
+            background: #0e0e12;
+            color: #d0d0d0;
+            font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', Consolas, monospace;
+            font-size: 14px;
+            line-height: 1.8;
+            tab-size: 2;
+        }
+        #markdown-input::placeholder {
+            color: #444;
+        }
+        #markdown-input::-webkit-scrollbar { width: 8px; }
+        #markdown-input::-webkit-scrollbar-track { background: transparent; }
+        #markdown-input::-webkit-scrollbar-thumb {
+            background: #2a2a2e;
+            border-radius: 4px;
+        }
+
+        /* ========== RESIZE HANDLE ========== */
+        .resize-handle {
+            width: 4px;
+            cursor: col-resize;
+            background: #1a1a1e;
+            transition: background 0.2s;
+            flex-shrink: 0;
+        }
+        .resize-handle:hover, .resize-handle.dragging {
+            background: #2dd4a8;
+        }
+
+        /* ========== PREVIEW PANEL ========== */
+        .preview-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+        .preview-area {
+            flex: 1;
+            overflow-y: auto;
+            background: #111;
+            display: flex;
+            justify-content: center;
+        }
+        .preview-area::-webkit-scrollbar { width: 8px; }
+        .preview-area::-webkit-scrollbar-track { background: #111; }
+        .preview-area::-webkit-scrollbar-thumb {
+            background: #2a2a2e;
+            border-radius: 4px;
+        }
+
+        /* ========== FORMAT BAR (between panel header and editor) ========== */
+        .format-bar {
+            display: flex;
+            align-items: center;
+            gap: 2px;
+            padding: 4px 12px;
+            background: #111114;
+            border-bottom: 1px solid #1e1e22;
+            flex-shrink: 0;
+        }
+        .fmt-btn {
+            width: 30px;
+            height: 28px;
+            border: none;
+            border-radius: 4px;
+            background: transparent;
+            color: #777;
+            font-size: 13px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s;
+            font-family: inherit;
+        }
+        .fmt-btn:hover {
+            background: #1e1e24;
+            color: #ddd;
+        }
+        .fmt-btn b { font-size: 14px; }
+        .fmt-sep {
+            width: 1px;
+            height: 18px;
+            background: #222;
+            margin: 0 4px;
+        }
+
+        /* ========== SETTINGS PANEL ========== */
+        .settings-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.6);
+            z-index: 100;
+        }
+        .settings-overlay.active { display: flex; align-items: center; justify-content: center; }
+        .settings-modal {
+            background: #1a1a1e;
+            border: 1px solid #2a2a2e;
+            border-radius: 16px;
+            padding: 32px;
+            width: 480px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .settings-modal h3 {
+            font-size: 18px;
+            color: #fff;
+            margin-bottom: 24px;
+        }
+        .setting-group {
+            margin-bottom: 20px;
+        }
+        .setting-group label {
+            display: block;
+            font-size: 13px;
+            color: #888;
+            margin-bottom: 8px;
+        }
+        .setting-group input[type="color"] {
+            width: 40px;
+            height: 32px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            background: transparent;
+        }
+        .setting-group input[type="range"] {
+            width: 100%;
+            accent-color: #2dd4a8;
+        }
+        .setting-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .setting-value {
+            font-size: 13px;
+            color: #2dd4a8;
+            min-width: 40px;
+        }
+        .settings-close {
+            margin-top: 20px;
+            padding: 8px 24px;
+            border: none;
+            border-radius: 8px;
+            background: #2dd4a8;
+            color: #0a0a0c;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: inherit;
+        }
+
+        /* ========== TOAST NOTIFICATION ========== */
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: #2dd4a8;
+            color: #0a0a0c;
+            padding: 10px 24px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            opacity: 0;
+            transition: all 0.3s ease;
+            z-index: 200;
+            pointer-events: none;
+        }
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* ========== ARTICLE OUTPUT STYLES (Preview) ========== */
+        .article-container {
+            width: 100%;
+            max-width: 580px;
+            padding: 20px 0;
+        }
+        .article-body {
+            background: #111;
+            padding: 0 20px;
+        }
+
+        /* ========== SYNTAX HELP PANEL ========== */
+        .help-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.6);
+            z-index: 100;
+        }
+        .help-overlay.active { display: flex; align-items: center; justify-content: center; }
+        .help-modal {
+            background: #1a1a1e;
+            border: 1px solid #2a2a2e;
+            border-radius: 16px;
+            padding: 32px;
+            width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .help-modal h3 {
+            font-size: 18px;
+            color: #fff;
+            margin-bottom: 20px;
+        }
+        .help-modal::-webkit-scrollbar { width: 6px; }
+        .help-modal::-webkit-scrollbar-track { background: transparent; }
+        .help-modal::-webkit-scrollbar-thumb { background: #2a2a2e; border-radius: 3px; }
+        .help-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .help-table td {
+            padding: 8px 12px;
+            border-bottom: 1px solid #222;
+            font-size: 13px;
+            color: #bbb;
+            vertical-align: top;
+        }
+        .help-table td:first-child {
+            color: #2dd4a8;
+            font-family: 'JetBrains Mono', Consolas, monospace;
+            white-space: nowrap;
+            width: 45%;
+        }
+        .help-close {
+            margin-top: 20px;
+            padding: 8px 24px;
+            border: none;
+            border-radius: 8px;
+            background: #2dd4a8;
+            color: #0a0a0c;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: inherit;
+        }
+    </style>
+</head>
+<body>
+    <!-- TOOLBAR -->
+    <div class="toolbar">
+        <div class="toolbar-left">
+            <div class="toolbar-logo">摸鱼排版器 <span id="toolbar-theme-label">深色科技</span></div>
+            <select id="template-select" class="template-select" onchange="applyTemplate(this.value)" title="选择排版模板">
+                <option value="dark-teal">深色科技</option>
+                <option value="dark-orange">深色暖橙</option>
+                <option value="light-minimal">浅色极简</option>
+                <option value="light-blue">浅色蓝调</option>
+                <option value="light-amber">浅色暖咖</option>
+            </select>
+        </div>
+        <div class="toolbar-center">
+            <button class="toolbar-btn active" onclick="setView('split')">分栏</button>
+            <button class="toolbar-btn" onclick="setView('editor')">编辑</button>
+            <button class="toolbar-btn" onclick="setView('preview')">预览</button>
+            <div class="toolbar-sep"></div>
+            <button class="toolbar-btn" onclick="loadExample()">示例</button>
+            <button class="toolbar-btn" onclick="optimizeMarkdown()" title="将简单 Markdown 转为排版增强格式">智能优化</button>
+            <button class="toolbar-btn" onclick="openHelp()">语法</button>
+            <button class="toolbar-btn" onclick="openSettings()">设置</button>
+        </div>
+        <div class="toolbar-right">
+            <button class="btn-outline" onclick="copySource()">复制源码</button>
+            <button class="btn-copy" id="btn-copy" onclick="copyForWeChat()">复制到微信</button>
+        </div>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div class="main" id="main">
+        <!-- EDITOR -->
+        <div class="editor-panel" id="editor-panel">
+            <div class="panel-header">
+                <span class="panel-title">Markdown</span>
+                <span style="font-size:12px;color:#444;" id="char-count">0 字</span>
+            </div>
+            <div class="format-bar">
+                <button class="fmt-btn" title="标题" onclick="insertFormat('heading')"><b>H</b></button>
+                <button class="fmt-btn" title="粗体" onclick="insertFormat('bold')"><b>B</b></button>
+                <button class="fmt-btn" title="斜体" onclick="insertFormat('italic')"><i>I</i></button>
+                <button class="fmt-btn" title="高亮" onclick="insertFormat('highlight')"><span style="background:#2dd4a8;color:#000;padding:0 3px;border-radius:2px;font-size:11px;">H</span></button>
+                <div class="fmt-sep"></div>
+                <button class="fmt-btn" title="信息栏" onclick="insertFormat('info')" style="font-size:11px;">i</button>
+                <button class="fmt-btn" title="提示框" onclick="insertFormat('tip')" style="font-size:11px;">!</button>
+                <button class="fmt-btn" title="标签" onclick="insertFormat('tags')" style="font-size:11px;">#</button>
+                <div class="fmt-sep"></div>
+                <button class="fmt-btn" title="图片" onclick="insertFormat('image')" style="font-size:12px;">🖼</button>
+                <button class="fmt-btn" title="2列网格" onclick="insertFormat('grid2')" style="font-size:11px;">⊞</button>
+                <button class="fmt-btn" title="3列网格" onclick="insertFormat('grid3')" style="font-size:11px;">⊟</button>
+                <div class="fmt-sep"></div>
+                <button class="fmt-btn" title="分割线" onclick="insertFormat('hr')">—</button>
+            </div>
+            <div class="editor-area">
+                <textarea id="markdown-input" placeholder="在这里输入 Markdown 内容...&#10;&#10;支持的特殊语法：&#10;  ## 01 章节标题&#10;  :::info  信息栏  :::&#10;  :::tip  提示框  :::&#10;  {tags: 标签1, 标签2}&#10;  ==高亮文本==&#10;  :::grid-2  图片网格  :::"></textarea>
+            </div>
+        </div>
+
+        <!-- RESIZE HANDLE -->
+        <div class="resize-handle" id="resize-handle"></div>
+
+        <!-- PREVIEW -->
+        <div class="preview-panel" id="preview-panel">
+            <div class="panel-header">
+                <span class="panel-title">Preview</span>
+                <span style="font-size:12px;color:#444;">微信公众号预览</span>
+            </div>
+            <div class="preview-area" id="preview-area">
+                <div class="article-container">
+                    <div class="article-body" id="article-body">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SETTINGS OVERLAY -->
+    <div class="settings-overlay" id="settings-overlay" onclick="if(event.target===this)closeSettings()">
+        <div class="settings-modal">
+            <h3>排版设置</h3>
+            <div class="setting-group">
+                <label>主题色</label>
+                <div class="setting-row">
+                    <input type="color" id="s-accent" value="#2dd4a8" onchange="updateSetting()">
+                    <span class="setting-value" id="sv-accent">#2dd4a8</span>
+                </div>
+            </div>
+            <div class="setting-group">
+                <label>正文字号 (px)</label>
+                <div class="setting-row">
+                    <input type="range" id="s-fontsize" min="14" max="20" value="16" onchange="updateSetting()">
+                    <span class="setting-value" id="sv-fontsize">16px</span>
+                </div>
+            </div>
+            <div class="setting-group">
+                <label>行高</label>
+                <div class="setting-row">
+                    <input type="range" id="s-lineheight" min="16" max="28" value="20" step="1" onchange="updateSetting()">
+                    <span class="setting-value" id="sv-lineheight">2.0</span>
+                </div>
+            </div>
+            <div class="setting-group">
+                <label>段间距 (em)</label>
+                <div class="setting-row">
+                    <input type="range" id="s-paragap" min="8" max="24" value="16" step="2" onchange="updateSetting()">
+                    <span class="setting-value" id="sv-paragap">1.6em</span>
+                </div>
+            </div>
+            <div class="setting-group">
+                <label>页面背景</label>
+                <div class="setting-row">
+                    <input type="color" id="s-bg" value="#111111" onchange="updateSetting()">
+                    <span class="setting-value" id="sv-bg">#111111</span>
+                </div>
+            </div>
+            <div class="setting-group">
+                <label>正文颜色</label>
+                <div class="setting-row">
+                    <input type="color" id="s-textcolor" value="#c8c8c8" onchange="updateSetting()">
+                    <span class="setting-value" id="sv-textcolor">#c8c8c8</span>
+                </div>
+            </div>
+            <div class="setting-group">
+                <label style="display:flex;align-items:center;gap:8px;">
+                    <input type="checkbox" id="s-show-footer" checked onchange="showFixedFooter=this.checked;updatePreview();">
+                    显示固定结尾（点赞/在看/转发）
+                </label>
+            </div>
+            <button class="settings-close" onclick="closeSettings()">完成</button>
+        </div>
+    </div>
+
+    <!-- HELP OVERLAY -->
+    <div class="help-overlay" id="help-overlay" onclick="if(event.target===this)closeHelp()">
+        <div class="help-modal">
+            <h3>Markdown 语法参考</h3>
+            <table class="help-table">
+                <tr><td>--- 开头 front matter</td><td>动态头部：subtitle, title, tags, banner, steps, image</td></tr>
+                <tr><td># 文章标题</td><td>一级标题（文章主标题，居中）</td></tr>
+                <tr><td>## 01 章节标题</td><td>带编号的章节标题（大号数字 + 渐变线）</td></tr>
+                <tr><td>## 普通标题</td><td>二级标题（无编号）</td></tr>
+                <tr><td>### 小标题</td><td>三级标题（左边绿色竖线）</td></tr>
+                <tr><td>**粗体**</td><td>粗体文本</td></tr>
+                <tr><td>*斜体*</td><td>斜体文本</td></tr>
+                <tr><td>==高亮文本==</td><td>绿色高亮文字</td></tr>
+                <tr><td>`代码`</td><td>行内代码</td></tr>
+                <tr><td>~~删除线~~</td><td>删除线文本</td></tr>
+                <tr><td>[文字](url)</td><td>超链接</td></tr>
+                <tr><td>![说明](url)</td><td>图片（连续多图自动网格）</td></tr>
+                <tr><td>---</td><td>分割线</td></tr>
+                <tr><td>- 列表项</td><td>无序列表（绿色圆点）</td></tr>
+                <tr><td>1. 列表项</td><td>有序列表（绿色数字）</td></tr>
+                <tr><td>> 引用文字</td><td>引用块（左侧绿色边线）</td></tr>
+                <tr><td>> [!info] 文字</td><td>信息提示（绿色横幅）</td></tr>
+                <tr><td>> [!tip] 文字</td><td>提示框（绿色横幅）</td></tr>
+                <tr><td>> [!warning] 文字</td><td>警告框（橙色横幅）</td></tr>
+                <tr><td>:::info ... :::</td><td>信息块（整块绿色背景）</td></tr>
+                <tr><td>:::tip ... :::</td><td>提示块</td></tr>
+                <tr><td>:::card ... :::</td><td>卡片块（深色卡片背景）</td></tr>
+                <tr><td>:::dark ... :::</td><td>暗色卡片（更深的背景）</td></tr>
+                <tr><td>:::summary ... :::</td><td>总结块（带图标和边框）</td></tr>
+                <tr><td>:::center ... :::</td><td>居中块</td></tr>
+                <tr><td>:::subtitle ... :::</td><td>副标题（带绿色圆点）</td></tr>
+                <tr><td>:::checklist 标题 ... :::</td><td>终端/清单块（macOS 窗口风格）</td></tr>
+                <tr><td>:::terminal 标题 ... :::</td><td>同上，代码风格</td></tr>
+                <tr><td>:::grid-2 ... :::</td><td>2列图片网格</td></tr>
+                <tr><td>:::grid-3 ... :::</td><td>3列图片网格</td></tr>
+                <tr><td>{tags: 标签1, 标签2}</td><td>彩色标签徽章</td></tr>
+                <tr><td>{steps: 6}</td><td>步骤导航栏</td></tr>
+            </table>
+            <button class="help-close" onclick="closeHelp()">知道了</button>
+        </div>
+    </div>
+
+    <!-- TOAST -->
+    <div class="toast" id="toast"></div>
+
+    <script>
+    /* ================================================================
+       TEMPLATES & CONFIG
+    ================================================================ */
+    const TEMPLATES = {
+        'dark-teal': {
+            name: '深色科技',
+            accent: '#2dd4a8',
+            fontSize: 16,
+            lineHeight: 2.0,
+            paraGap: 1.6,
+            bg: '#111111',
+            cardBg: '#1a1a1e',
+            darkCardBg: '#0d0d0f',
+            textColor: '#c8c8c8',
+            titleColor: '#ffffff',
+            subtitleColor: '#888888',
+            borderColor: '#2a2a2e',
+        },
+        'dark-orange': {
+            name: '深色暖橙',
+            accent: '#ff8c42',
+            fontSize: 16,
+            lineHeight: 2.0,
+            paraGap: 1.6,
+            bg: '#111111',
+            cardBg: '#1a1a1e',
+            darkCardBg: '#0d0d0f',
+            textColor: '#c8c8c8',
+            titleColor: '#ffffff',
+            subtitleColor: '#888888',
+            borderColor: '#2a2a2e',
+        },
+        'light-minimal': {
+            name: '浅色极简',
+            accent: '#1a7f64',
+            fontSize: 16,
+            lineHeight: 2.0,
+            paraGap: 1.6,
+            bg: '#ffffff',
+            cardBg: '#f5f5f5',
+            darkCardBg: '#eeeeee',
+            textColor: '#333333',
+            titleColor: '#111111',
+            subtitleColor: '#666666',
+            borderColor: '#e0e0e0',
+        },
+        'light-blue': {
+            name: '浅色蓝调',
+            accent: '#3b82f6',
+            fontSize: 16,
+            lineHeight: 2.0,
+            paraGap: 1.6,
+            bg: '#f8f9fa',
+            cardBg: '#ffffff',
+            darkCardBg: '#f1f3f5',
+            textColor: '#374151',
+            titleColor: '#111827',
+            subtitleColor: '#6b7280',
+            borderColor: '#e5e7eb',
+        },
+        'light-amber': {
+            name: '浅色暖咖',
+            accent: '#b45309',
+            fontSize: 16,
+            lineHeight: 2.0,
+            paraGap: 1.6,
+            bg: '#faf8f5',
+            cardBg: '#f5f0e8',
+            darkCardBg: '#ede8e0',
+            textColor: '#422a12',
+            titleColor: '#1c1917',
+            subtitleColor: '#78716c',
+            borderColor: '#e7e5e4',
+        },
+    };
+    let CONFIG = { ...TEMPLATES['dark-teal'] };
+
+    function applyTemplate(id) {
+        if (!TEMPLATES[id]) return;
+        CONFIG = { ...TEMPLATES[id] };
+        document.getElementById('toolbar-theme-label').textContent = CONFIG.name;
+        let sel = document.getElementById('template-select');
+        if (sel) sel.value = id;
+        syncSettingsFromConfig();
+        updatePreview();
+    }
+
+    function syncSettingsFromConfig() {
+        let el = (id) => document.getElementById(id);
+        if (el('s-accent')) el('s-accent').value = CONFIG.accent;
+        if (el('s-fontsize')) el('s-fontsize').value = CONFIG.fontSize;
+        if (el('s-lineheight')) el('s-lineheight').value = String(CONFIG.lineHeight * 10);
+        if (el('s-paragap')) el('s-paragap').value = String(CONFIG.paraGap * 10);
+        if (el('s-bg')) el('s-bg').value = CONFIG.bg;
+        if (el('s-textcolor')) el('s-textcolor').value = CONFIG.textColor;
+        if (el('sv-accent')) el('sv-accent').textContent = CONFIG.accent;
+        if (el('sv-fontsize')) el('sv-fontsize').textContent = CONFIG.fontSize + 'px';
+        if (el('sv-lineheight')) el('sv-lineheight').textContent = CONFIG.lineHeight.toFixed(1);
+        if (el('sv-paragap')) el('sv-paragap').textContent = CONFIG.paraGap.toFixed(1) + 'em';
+        if (el('sv-bg')) el('sv-bg').textContent = CONFIG.bg;
+        if (el('sv-textcolor')) el('sv-textcolor').textContent = CONFIG.textColor;
+    }
+
+    /* ================================================================
+       FRONT MATTER 解析与动态头部
+    ================================================================ */
+    function parseFrontMatter(md) {
+        let raw = md.trim();
+        if (!raw.startsWith('---')) return { body: md };
+        let end = raw.indexOf('\n---', 3);
+        if (end === -1) return { body: md };
+        let block = raw.slice(3, end).trim();
+        let body = raw.slice(end + 4).trim();
+        let fm = {};
+        block.split('\n').forEach(line => {
+            let idx = line.indexOf(':');
+            if (idx === -1) return;
+            let k = line.slice(0, idx).trim();
+            let v = line.slice(idx + 1).trim();
+            if (v.startsWith('"') && v.endsWith('"')) v = v.slice(1, -1);
+            fm[k] = v.replace(/\\n/g, '\n');
+        });
+        return { fm: Object.keys(fm).length ? fm : null, body };
+    }
+
+    function renderFrontMatterHeader(fm) {
+        let html = '';
+        if (fm.subtitle) {
+            html += `<section style="margin:12px 0;">
+                <span style="display:inline-flex;align-items:center;gap:6px;font-size:14px;color:${CONFIG.accent};font-weight:500;">
+                    <span style="display:inline-block;width:8px;height:8px;background:${CONFIG.accent};border-radius:50%;"></span>
+                    ${inlineFormat(fm.subtitle)}
+                </span>
+            </section>`;
+        }
+        if (fm.title) {
+            let parts = fm.title.split('\n');
+            let line1 = inlineFormat(parts[0] || '');
+            let line2 = parts[1] ? inlineFormat(parts[1]) : '';
+            let titleHtml = line2
+                ? `<span style="color:${CONFIG.titleColor};">${line1}</span><br/><span style="color:${CONFIG.accent};font-weight:700;">${line2}</span>`
+                : line1;
+            html += `<section style="margin:16px 0;">
+                <h2 style="font-size:24px;font-weight:700;line-height:1.3;margin:0;">${titleHtml}</h2>
+                <section style="height:2px;background:${CONFIG.accent};border-radius:1px;margin-top:8px;width:80px;"></section>
+            </section>`;
+        }
+        if (fm.tags) {
+            let tags = fm.tags.split(/[,，]/).map(s => s.trim()).filter(Boolean);
+            html += renderTags(tags);
+        }
+        if (fm.image) {
+            html += `<section style="margin:12px 0;">
+                <img src="${fm.image}" alt="" style="max-width:120px;height:auto;border-radius:8px;float:right;margin-left:12px;" />
+            </section>`;
+        }
+        if (fm.banner) {
+            html += `<section style="margin:16px 0;padding:14px 20px;background:${CONFIG.accent};border-radius:10px;">
+                <p style="margin:0;font-size:15px;line-height:1.5;color:#0a0a0c;font-weight:500;">${inlineFormat(fm.banner)}</p>
+            </section>`;
+        }
+        if (fm.steps) {
+            let stepEntries = fm.steps.split(/[,，]/).map(s => s.trim()).filter(Boolean);
+            let stepsHtml = stepEntries.map((entry, i) => {
+                let [title, subtitle] = entry.split('|').map(s => s.trim());
+                subtitle = subtitle || '';
+                let isFirst = i === 0;
+                return `<section style="display:inline-block;padding:10px 16px;border-radius:8px;margin-right:8px;margin-bottom:8px;min-width:100px;${isFirst ? `background:${CONFIG.accent};` : `background:${CONFIG.cardBg};border:1px solid ${CONFIG.borderColor};`}">
+                    <span style="font-size:11px;color:${isFirst ? '#0a0a0c' : CONFIG.subtitleColor};">STEP ${String(i + 1).padStart(2, '0')}</span>
+                    <p style="margin:4px 0 0 0;font-size:14px;font-weight:700;color:${isFirst ? '#0a0a0c' : CONFIG.titleColor};">${title || ''}</p>
+                    <p style="margin:2px 0 0 0;font-size:12px;color:${isFirst ? '#0a0a0c' : CONFIG.subtitleColor};opacity:0.9;">${subtitle}</p>
+                </section>`;
+            }).join('');
+            html += `<section style="margin:16px 0;">
+                <section style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+                    <span style="width:14px;height:14px;background:${CONFIG.accent};border-radius:3px;"></span>
+                    <span style="font-size:13px;font-weight:700;color:${CONFIG.titleColor};letter-spacing:2px;">${stepEntries.length} STEPS + SUMMARY</span>
+                </section>
+                <section style="display:flex;flex-wrap:wrap;gap:4px;">${stepsHtml}</section>
+            </section>`;
+        }
+        return html ? `<section style="margin-bottom:24px;">${html}</section>` : '';
+    }
+
+    function renderDocument(md) {
+        let { fm, body } = parseFrontMatter(md);
+        if (fm && Object.keys(fm).length > 0) {
+            return renderFrontMatterHeader(fm) + renderMarkdown(body);
+        }
+        return renderMarkdown(md);
+    }
+
+    /* ================================================================
+       MARKDOWN → STYLED HTML 转换器
+    ================================================================ */
+    function renderMarkdown(md) {
+        if (!md.trim()) return '';
+        let lines = md.split('\n');
+        let html = '';
+        let i = 0;
+
+        while (i < lines.length) {
+            let line = lines[i];
+
+            // --- Empty lines ---
+            if (line.trim() === '') { i++; continue; }
+
+            // --- Horizontal rule ---
+            if (/^---+\s*$/.test(line.trim())) {
+                html += renderHr();
+                i++; continue;
+            }
+
+            // --- ::: block syntax (with nesting support) ---
+            if (/^:::\s*(\w[\w-]*)/.test(line.trim())) {
+                let match = line.trim().match(/^:::\s*(\w[\w-]*)\s*(.*)?$/);
+                let blockType = match[1];
+                let blockMeta = match[2] || '';
+                let blockLines = [];
+                let depth = 1;
+                i++;
+                while (i < lines.length && depth > 0) {
+                    if (/^:::\s*$/.test(lines[i].trim())) {
+                        depth--;
+                        if (depth === 0) { i++; break; }
+                    } else if (/^:::\s*\w/.test(lines[i].trim())) {
+                        depth++;
+                    }
+                    blockLines.push(lines[i]);
+                    i++;
+                }
+                html += renderBlock(blockType, blockMeta, blockLines);
+                continue;
+            }
+
+            // --- Headings ---
+            if (/^#{1,6}\s/.test(line)) {
+                let hMatch = line.match(/^(#{1,6})\s+(.+)$/);
+                if (hMatch) {
+                    let level = hMatch[1].length;
+                    let text = hMatch[2];
+                    html += renderHeading(level, text);
+                }
+                i++; continue;
+            }
+
+            // --- Blockquote / Info ---
+            if (/^>\s/.test(line)) {
+                let quoteLines = [];
+                while (i < lines.length && /^>\s?/.test(lines[i])) {
+                    quoteLines.push(lines[i].replace(/^>\s?/, ''));
+                    i++;
+                }
+                let quoteText = quoteLines.join('\n');
+                // Check for admonition
+                let adMatch = quoteText.match(/^\[!(info|tip|warning|note)\]\s*([\s\S]*)$/);
+                if (adMatch) {
+                    html += renderAdmonition(adMatch[1], adMatch[2]);
+                } else {
+                    html += renderBlockquote(quoteText);
+                }
+                continue;
+            }
+
+            // --- Images (collect consecutive for grid) ---
+            if (/^!\[/.test(line.trim())) {
+                let images = [];
+                while (i < lines.length && /^!\[/.test(lines[i].trim())) {
+                    let imgMatch = lines[i].trim().match(/^!\[([^\]]*)\]\(([^)]+)\)(.*)$/);
+                    if (imgMatch) {
+                        images.push({ alt: imgMatch[1], src: imgMatch[2], caption: imgMatch[3].trim() });
+                    }
+                    i++;
+                }
+                html += renderImages(images);
+                continue;
+            }
+
+            // --- Tags line ---
+            if (/^\{tags:\s*(.+)\}$/.test(line.trim())) {
+                let tagMatch = line.trim().match(/^\{tags:\s*(.+)\}$/);
+                let tags = tagMatch[1].split(/[,，]\s*/);
+                html += renderTags(tags);
+                i++; continue;
+            }
+
+            // --- Steps line ---
+            if (/^\{steps:\s*(.+)\}$/.test(line.trim())) {
+                let stepMatch = line.trim().match(/^\{steps:\s*(.+)\}$/);
+                let count = parseInt(stepMatch[1]) || 6;
+                html += renderSteps(count);
+                i++; continue;
+            }
+
+            // --- Unordered list ---
+            if (/^[-*]\s/.test(line.trim())) {
+                let listItems = [];
+                while (i < lines.length && /^[-*]\s/.test(lines[i].trim())) {
+                    listItems.push(lines[i].trim().replace(/^[-*]\s+/, ''));
+                    i++;
+                }
+                html += renderList(listItems);
+                continue;
+            }
+
+            // --- Ordered list ---
+            if (/^\d+\.\s/.test(line.trim())) {
+                let listItems = [];
+                while (i < lines.length && /^\d+\.\s/.test(lines[i].trim())) {
+                    listItems.push(lines[i].trim().replace(/^\d+\.\s+/, ''));
+                    i++;
+                }
+                html += renderOrderedList(listItems);
+                continue;
+            }
+
+            // --- Regular paragraph ---
+            let paraLines = [];
+            while (i < lines.length && lines[i].trim() !== '' &&
+                   !/^#{1,6}\s/.test(lines[i]) &&
+                   !/^---/.test(lines[i].trim()) &&
+                   !/^>\s/.test(lines[i]) &&
+                   !/^!\[/.test(lines[i].trim()) &&
+                   !/^:::\s/.test(lines[i].trim()) &&
+                   !/^\{tags:/.test(lines[i].trim()) &&
+                   !/^\{steps:/.test(lines[i].trim()) &&
+                   !/^[-*]\s/.test(lines[i].trim()) &&
+                   !/^\d+\.\s/.test(lines[i].trim())) {
+                paraLines.push(lines[i]);
+                i++;
+            }
+            if (paraLines.length > 0) {
+                html += renderParagraph(paraLines.join('\n'));
+            }
+        }
+
+        return html;
+    }
+
+    /* ================================================================
+       INLINE FORMATTING — 处理行内样式
+    ================================================================ */
+    function inlineFormat(text) {
+        // ==highlight== → accent color background
+        text = text.replace(/==([^=]+)==/g,
+            `<span style="color:${CONFIG.accent};font-weight:700;">$1</span>`);
+        // **bold**
+        text = text.replace(/\*\*([^*]+)\*\*/g,
+            `<strong style="color:${CONFIG.titleColor};font-weight:700;">$1</strong>`);
+        // *italic*
+        text = text.replace(/\*([^*]+)\*/g,
+            `<em style="font-style:italic;">$1</em>`);
+        // `code`
+        text = text.replace(/`([^`]+)`/g,
+            `<code style="background:${CONFIG.cardBg};color:${CONFIG.accent};padding:2px 6px;border-radius:4px;font-size:0.9em;font-family:Consolas,monospace;">$1</code>`);
+        // [link](url)
+        text = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g,
+            `<a href="$2" style="color:${CONFIG.accent};text-decoration:none;border-bottom:1px solid ${CONFIG.accent}40;">$1</a>`);
+        // ~~strikethrough~~
+        text = text.replace(/~~([^~]+)~~/g,
+            `<del style="text-decoration:line-through;color:#666;">$1</del>`);
+
+        return text;
+    }
+
+    /* ================================================================
+       RENDER FUNCTIONS — 各元素渲染
+    ================================================================ */
+
+    function renderHeading(level, rawText) {
+        let text = inlineFormat(rawText);
+
+        // H1 = Article title
+        if (level === 1) {
+            return `<section style="margin:20px 0 24px 0;text-align:center;">
+                <h1 style="font-size:26px;font-weight:800;color:${CONFIG.titleColor};line-height:1.4;letter-spacing:1px;margin:0;">${text}</h1>
+            </section>`;
+        }
+
+        // H2 = Section header — detect number pattern like "01 Title"
+        if (level === 2) {
+            let numMatch = rawText.match(/^(\d{1,2})\s+(.+)$/);
+            if (numMatch) {
+                let num = numMatch[1].padStart(2, '0');
+                let title = inlineFormat(numMatch[2]);
+                return `<section style="margin:48px 0 24px 0;">
+                    <section style="display:flex;align-items:flex-end;gap:16px;margin-bottom:14px;">
+                        <section style="position:relative;">
+                            <span style="font-size:64px;font-weight:900;color:${CONFIG.accent};line-height:1;font-family:'DIN Alternate','DIN',Impact,'Arial Black',sans-serif;letter-spacing:-2px;opacity:0.85;">${num}</span>
+                        </section>
+                        <section style="padding-bottom:8px;">
+                            <span style="font-size:21px;font-weight:700;color:${CONFIG.titleColor};line-height:1.3;letter-spacing:0.5px;">${title}</span>
+                        </section>
+                    </section>
+                    <section style="height:3px;background:linear-gradient(90deg,${CONFIG.accent},${CONFIG.accent}40,transparent);border-radius:2px;"></section>
+                </section>`;
+            }
+            return `<section style="margin:40px 0 20px 0;">
+                <h2 style="font-size:22px;font-weight:700;color:${CONFIG.titleColor};line-height:1.4;margin:0;padding-bottom:12px;border-bottom:2px solid ${CONFIG.accent}40;">${text}</h2>
+            </section>`;
+        }
+
+        // H3 = Subsection
+        if (level === 3) {
+            return `<section style="margin:28px 0 14px 0;">
+                <h3 style="font-size:18px;font-weight:700;color:${CONFIG.titleColor};line-height:1.4;margin:0;padding-left:12px;border-left:3px solid ${CONFIG.accent};">${text}</h3>
+            </section>`;
+        }
+
+        // H4+
+        return `<section style="margin:20px 0 10px 0;">
+            <h${level} style="font-size:16px;font-weight:700;color:${CONFIG.titleColor};line-height:1.4;margin:0;">${text}</h${level}>
+        </section>`;
+    }
+
+    function renderParagraph(text) {
+        text = inlineFormat(text);
+        return `<p style="margin:0 0 ${CONFIG.paraGap}em 0;font-size:${CONFIG.fontSize}px;line-height:${CONFIG.lineHeight};color:${CONFIG.textColor};letter-spacing:0.5px;">${text}</p>`;
+    }
+
+    function renderBlockquote(text) {
+        text = inlineFormat(text.trim());
+        return `<section style="margin:20px 0;padding:16px 20px;background:${CONFIG.cardBg};border-left:4px solid ${CONFIG.accent};border-radius:0 8px 8px 0;">
+            <p style="margin:0;font-size:${CONFIG.fontSize}px;line-height:${CONFIG.lineHeight};color:${CONFIG.textColor};font-style:italic;">${text}</p>
+        </section>`;
+    }
+
+    function renderAdmonition(type, text) {
+        text = inlineFormat(text.trim());
+        let styles = {
+            info: { bg: CONFIG.accent, color: '#0a0a0c', icon: '💡' },
+            tip:  { bg: '#4ade80', color: '#0a0a0c', icon: '✅' },
+            warning: { bg: '#ff8c42', color: '#0a0a0c', icon: '⚠️' },
+            note: { bg: '#5b8def', color: '#0a0a0c', icon: '📝' },
+        };
+        let s = styles[type] || styles.info;
+        return `<section style="margin:20px 0;padding:14px 20px;background:${s.bg};border-radius:10px;display:flex;align-items:center;gap:8px;">
+            <span style="font-size:16px;">${s.icon}</span>
+            <p style="margin:0;font-size:15px;line-height:1.6;color:${s.color};font-weight:500;">${text}</p>
+        </section>`;
+    }
+
+    function renderHr() {
+        return `<section style="margin:32px auto;width:60%;height:1px;background:linear-gradient(90deg,transparent,${CONFIG.borderColor},transparent);"></section>`;
+    }
+
+    function renderImages(images) {
+        if (images.length === 0) return '';
+        if (images.length === 1) {
+            let img = images[0];
+            let html = `<section style="margin:16px 0;">
+                <img src="${img.src}" alt="${img.alt}" style="width:100%;border-radius:8px;display:block;" />`;
+            if (img.alt || img.caption) {
+                html += `<p style="margin:8px 0 0 0;font-size:13px;color:${CONFIG.subtitleColor};text-align:center;line-height:1.5;">${img.caption || img.alt}</p>`;
+            }
+            html += `</section>`;
+            return html;
+        }
+
+        // Multi-image grid
+        let cols = images.length <= 2 ? 2 : (images.length <= 4 ? 2 : 3);
+        let gap = 8;
+        let imgHtml = images.map(img =>
+            `<img src="${img.src}" alt="${img.alt}" style="width:100%;height:100%;object-fit:cover;border-radius:6px;display:block;" />`
+        ).join('');
+
+        return `<section style="margin:16px 0;display:grid;grid-template-columns:repeat(${cols},1fr);gap:${gap}px;">
+            ${imgHtml}
+        </section>`;
+    }
+
+    function renderTags(tags) {
+        let colors = [
+            { bg: CONFIG.accent + '20', border: CONFIG.accent + '60', text: CONFIG.accent },
+            { bg: '#ff8c42' + '20', border: '#ff8c42' + '60', text: '#ff8c42' },
+            { bg: '#5b8def' + '20', border: '#5b8def' + '60', text: '#5b8def' },
+            { bg: '#e879f9' + '20', border: '#e879f9' + '60', text: '#e879f9' },
+            { bg: '#facc15' + '20', border: '#facc15' + '60', text: '#facc15' },
+        ];
+        let tagHtml = tags.map((tag, idx) => {
+            let c = colors[idx % colors.length];
+            return `<span style="display:inline-block;padding:4px 14px;background:${c.bg};border:1px solid ${c.border};border-radius:20px;font-size:13px;color:${c.text};font-weight:500;margin-right:8px;">${tag.trim()}</span>`;
+        }).join('');
+
+        return `<section style="margin:16px 0;display:flex;flex-wrap:wrap;gap:6px;">
+            ${tagHtml}
+        </section>`;
+    }
+
+    function renderSteps(count) {
+        let stepsHtml = '';
+        for (let s = 1; s <= count; s++) {
+            let num = String(s).padStart(2, '0');
+            let isFirst = s === 1;
+            stepsHtml += `<span style="display:inline-block;padding:6px 16px;font-size:13px;font-weight:600;border-radius:6px;margin-right:4px;${
+                isFirst
+                    ? `background:${CONFIG.accent};color:#0a0a0c;`
+                    : `background:${CONFIG.cardBg};color:${CONFIG.subtitleColor};border:1px solid ${CONFIG.borderColor};`
+            }">STEP ${num}</span>`;
+        }
+        return `<section style="margin:20px 0;">
+            <section style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+                <span style="display:inline-block;width:14px;height:14px;background:${CONFIG.accent};border-radius:3px;"></span>
+                <span style="font-size:13px;font-weight:700;color:${CONFIG.titleColor};letter-spacing:2px;">${count} STEPS + SUMMARY</span>
+            </section>
+            <section style="display:flex;flex-wrap:wrap;gap:4px;">
+                ${stepsHtml}
+            </section>
+        </section>`;
+    }
+
+    function renderList(items) {
+        let listHtml = items.map(item =>
+            `<li style="margin:0 0 8px 0;font-size:${CONFIG.fontSize}px;line-height:${CONFIG.lineHeight};color:${CONFIG.textColor};padding-left:4px;">
+                <span style="color:${CONFIG.accent};margin-right:8px;">●</span>${inlineFormat(item)}
+            </li>`
+        ).join('');
+        return `<ul style="margin:12px 0 ${CONFIG.paraGap}em 0;padding-left:8px;list-style:none;">
+            ${listHtml}
+        </ul>`;
+    }
+
+    function renderOrderedList(items) {
+        let listHtml = items.map((item, idx) =>
+            `<li style="margin:0 0 8px 0;font-size:${CONFIG.fontSize}px;line-height:${CONFIG.lineHeight};color:${CONFIG.textColor};padding-left:4px;">
+                <span style="color:${CONFIG.accent};font-weight:700;margin-right:8px;">${idx + 1}.</span>${inlineFormat(item)}
+            </li>`
+        ).join('');
+        return `<ol style="margin:12px 0 ${CONFIG.paraGap}em 0;padding-left:8px;list-style:none;">
+            ${listHtml}
+        </ol>`;
+    }
+
+    function renderBlock(type, meta, lines) {
+        let content = lines.join('\n');
+
+        // Info / tip / warning / note blocks
+        if (['info', 'tip', 'warning', 'note'].includes(type)) {
+            return renderAdmonition(type, content);
+        }
+
+        // Card block
+        if (type === 'card') {
+            let innerHtml = renderMarkdown(content);
+            return `<section style="margin:20px 0;padding:24px 28px;background:${CONFIG.cardBg};border-radius:16px;border:1px solid ${CONFIG.borderColor};">
+                ${innerHtml}
+            </section>`;
+        }
+
+        // Dark card (darker than card)
+        if (type === 'dark') {
+            let innerHtml = renderMarkdown(content);
+            let darkBg = CONFIG.darkCardBg != null ? CONFIG.darkCardBg : '#0d0d0f';
+            return `<section style="margin:20px 0;padding:20px 24px;background:${darkBg};border-radius:12px;border:1px solid ${CONFIG.borderColor};">
+                ${innerHtml}
+            </section>`;
+        }
+
+        // Centered block
+        if (type === 'center') {
+            let innerHtml = renderMarkdown(content);
+            return `<section style="margin:20px 0;text-align:center;">
+                ${innerHtml}
+            </section>`;
+        }
+
+        // Grid blocks
+        if (/^grid-?(\d)?$/.test(type)) {
+            let cols = type.match(/\d/) ? parseInt(type.match(/\d/)[0]) : 2;
+            let imgs = [];
+            lines.forEach(l => {
+                let m = l.trim().match(/^!\[([^\]]*)\]\(([^)]+)\)/);
+                if (m) imgs.push({ alt: m[1], src: m[2] });
+            });
+            if (imgs.length === 0) {
+                let innerHtml = renderMarkdown(content);
+                return `<section style="margin:16px 0;display:grid;grid-template-columns:repeat(${cols},1fr);gap:8px;">
+                    ${innerHtml}
+                </section>`;
+            }
+            let imgHtml = imgs.map(img =>
+                `<img src="${img.src}" alt="${img.alt}" style="width:100%;border-radius:6px;display:block;" />`
+            ).join('');
+            return `<section style="margin:16px 0;display:grid;grid-template-columns:repeat(${cols},1fr);gap:8px;">
+                ${imgHtml}
+            </section>`;
+        }
+
+        // Subtitle block
+        if (type === 'subtitle') {
+            return `<section style="margin:12px 0;">
+                <span style="display:inline-flex;align-items:center;gap:6px;font-size:14px;color:${CONFIG.accent};font-weight:500;">
+                    <span style="display:inline-block;width:8px;height:8px;background:${CONFIG.accent};border-radius:50%;"></span>
+                    ${inlineFormat(content.trim())}
+                </span>
+            </section>`;
+        }
+
+        // Summary block
+        if (type === 'summary') {
+            let innerHtml = renderMarkdown(content);
+            return `<section style="margin:24px 0;padding:24px;background:linear-gradient(135deg,${CONFIG.accent}15,${CONFIG.accent}08);border:1px solid ${CONFIG.accent}30;border-radius:12px;">
+                <section style="display:flex;align-items:center;gap:8px;margin-bottom:16px;">
+                    <span style="font-size:16px;">📋</span>
+                    <span style="font-size:16px;font-weight:700;color:${CONFIG.accent};">总结</span>
+                </section>
+                ${innerHtml}
+            </section>`;
+        }
+
+        // Checklist / Terminal block (macOS window style)
+        if (type === 'checklist' || type === 'terminal') {
+            let title = (meta || 'CHECKLIST').trim().toUpperCase();
+            let headerBg = CONFIG.bg === '#111111' || CONFIG.bg === '#111' ? '#2d2d2d' : '#e8e8e8';
+            let dotRed = '#ff5f57';
+            let dotYellow = '#ffbd2e';
+            let dotGreen = '#27c93f';
+            let innerHtml = renderMarkdown(content);
+            return `<section style="margin:20px 0;border-radius:10px;overflow:hidden;border:1px solid ${CONFIG.borderColor};">
+                <section style="background:${headerBg};padding:10px 14px;display:flex;align-items:center;gap:12px;">
+                    <span style="width:12px;height:12px;border-radius:50%;background:${dotRed};display:inline-block;"></span>
+                    <span style="width:12px;height:12px;border-radius:50%;background:${dotYellow};display:inline-block;"></span>
+                    <span style="width:12px;height:12px;border-radius:50%;background:${dotGreen};display:inline-block;"></span>
+                    <span style="font-size:13px;font-weight:600;color:${CONFIG.titleColor};letter-spacing:1px;">${title}</span>
+                </section>
+                <section style="padding:16px 20px;background:${CONFIG.darkCardBg != null ? CONFIG.darkCardBg : CONFIG.cardBg};">
+                    ${innerHtml}
+                </section>
+            </section>`;
+        }
+
+        // Fallback
+        return `<section style="margin:16px 0;">${renderMarkdown(content)}</section>`;
+    }
+
+    /* ================================================================
+       FIXED FOOTER (点赞/在看/转发)
+    ================================================================ */
+    let showFixedFooter = true;
+
+    function renderFixedFooter() {
+        let borderC = CONFIG.borderColor;
+        let textC = CONFIG.subtitleColor;
+        let accentC = CONFIG.accent;
+        let svgLike = '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>';
+        let svgEye = '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+        let svgShare = '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>';
+        return `<section style="margin:32px 0 0 0;padding:24px 20px;border:1px solid ${borderC};border-radius:12px;text-align:center;background:${CONFIG.cardBg};">
+            <p style="margin:0 0 6px 0;font-size:14px;color:${textC};">觉得有用请帮我点个赞吧 👍</p>
+            <p style="margin:0 0 20px 0;font-size:13px;color:${textC};opacity:0.9;">点击领取奖励</p>
+            <section style="display:flex;justify-content:center;gap:28px;margin-bottom:20px;">
+                <section style="display:flex;flex-direction:column;align-items:center;gap:6px;">
+                    <span style="width:48px;height:48px;border-radius:10px;border:1px solid ${borderC};display:flex;align-items:center;justify-content:center;color:${textC};">${svgLike}</span>
+                    <span style="font-size:13px;color:${textC};">点赞</span>
+                </section>
+                <section style="display:flex;flex-direction:column;align-items:center;gap:6px;">
+                    <span style="width:48px;height:48px;border-radius:10px;border:1px solid ${borderC};display:flex;align-items:center;justify-content:center;color:${textC};">${svgEye}</span>
+                    <span style="font-size:13px;color:${textC};">在看</span>
+                </section>
+                <section style="display:flex;flex-direction:column;align-items:center;gap:6px;">
+                    <span style="width:48px;height:48px;border-radius:10px;background:${accentC}22;border:1px solid ${accentC}66;display:flex;align-items:center;justify-content:center;color:${accentC};">${svgShare}</span>
+                    <span style="font-size:13px;color:${accentC};font-weight:500;">转发</span>
+                </section>
+            </section>
+            <p style="margin:0;font-size:12px;color:${textC};letter-spacing:0.2em;">THANKS FOR READING</p>
+        </section>`;
+    }
+
+    /* ================================================================
+       PREVIEW UPDATE
+    ================================================================ */
+    function updatePreview() {
+        let md = document.getElementById('markdown-input').value;
+        let html = renderDocument(md);
+        if (showFixedFooter) html += renderFixedFooter();
+        let container = document.getElementById('article-body');
+        container.style.background = CONFIG.bg;
+        container.innerHTML = html;
+
+        // Update char count
+        let plainText = md.replace(/[#*`\[\]()!>:~={}\-]/g, '').replace(/\s+/g, '');
+        document.getElementById('char-count').textContent = plainText.length + ' 字';
+    }
+
+    /* ================================================================
+       COPY TO WECHAT — 生成带内联样式的 HTML
+    ================================================================ */
+    function copyForWeChat() {
+        let md = document.getElementById('markdown-input').value;
+        let html = renderDocument(md);
+        if (showFixedFooter) html += renderFixedFooter();
+
+        // Wrap in article container with background
+        let fullHtml = `<section style="background:${CONFIG.bg};padding:16px;margin:0;">
+            ${html}
+        </section>`;
+
+        // Copy as rich text
+        let blob = new Blob([fullHtml], { type: 'text/html' });
+        let data = [new ClipboardItem({ 'text/html': blob })];
+        navigator.clipboard.write(data).then(() => {
+            showToast('已复制到剪贴板，可直接粘贴到微信编辑器');
+            let btn = document.getElementById('btn-copy');
+            btn.textContent = '已复制 ✓';
+            btn.classList.add('copied');
+            setTimeout(() => {
+                btn.textContent = '复制到微信';
+                btn.classList.remove('copied');
+            }, 2000);
+        }).catch(() => {
+            // Fallback
+            let ta = document.createElement('textarea');
+            ta.value = fullHtml;
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+            showToast('已复制 HTML 源码');
+        });
+    }
+
+    /* ================================================================
+       Markdown 一键优化
+    ================================================================ */
+    function optimizeMarkdown() {
+        let md = document.getElementById('markdown-input').value;
+        let lines = md.split('\n');
+        let out = [];
+        let i = 0;
+        let sectionNum = 0;
+
+        while (i < lines.length) {
+            let line = lines[i];
+            // 为 ## 标题添加编号（若无）
+            if (/^##\s+(?!\d{1,2}\s)/.test(line)) {
+                sectionNum++;
+                let title = line.replace(/^##\s+/, '');
+                out.push('## ' + String(sectionNum).padStart(2, '0') + ' ' + title);
+                i++;
+                continue;
+            }
+            // 检测 - [ ] / - [x] 列表块，转为 :::checklist
+            if (/^-\s+\[[\sx]\]\s+/.test(line.trim())) {
+                let checklistLines = [];
+                while (i < lines.length && /^-\s+\[[\sx]\]\s+/.test(lines[i].trim())) {
+                    checklistLines.push(lines[i].trim().replace(/^-\s+\[[\sx]\]\s+/, '- '));
+                    i++;
+                }
+                out.push(':::checklist CHECKLIST');
+                out.push(...checklistLines);
+                out.push(':::');
+                out.push('');
+                continue;
+            }
+            out.push(line);
+            i++;
+        }
+
+        document.getElementById('markdown-input').value = out.join('\n');
+        updatePreview();
+        showToast('已优化：章节编号 + 清单块');
+    }
+
+    function copySource() {
+        let md = document.getElementById('markdown-input').value;
+        let html = renderDocument(md);
+        if (showFixedFooter) html += renderFixedFooter();
+        let fullHtml = `<section style="background:${CONFIG.bg};padding:16px;margin:0;">\n${html}\n</section>`;
+        navigator.clipboard.writeText(fullHtml).then(() => {
+            showToast('HTML 源码已复制');
+        });
+    }
+
+    /* ================================================================
+       EDITOR UTILITIES
+    ================================================================ */
+    function insertFormat(type) {
+        let ta = document.getElementById('markdown-input');
+        let start = ta.selectionStart;
+        let end = ta.selectionEnd;
+        let selected = ta.value.substring(start, end);
+        let before = ta.value.substring(0, start);
+        let after = ta.value.substring(end);
+        let insert = '';
+
+        switch (type) {
+            case 'heading': insert = `\n## 01 ${selected || '章节标题'}\n`; break;
+            case 'bold': insert = `**${selected || '粗体文本'}**`; break;
+            case 'italic': insert = `*${selected || '斜体文本'}*`; break;
+            case 'highlight': insert = `==${selected || '高亮文本'}==`; break;
+            case 'info': insert = `\n:::info\n${selected || '这里是重要信息'}\n:::\n`; break;
+            case 'tip': insert = `\n:::tip\n${selected || '这里是提示内容'}\n:::\n`; break;
+            case 'tags': insert = `\n{tags: 标签1, 标签2, 标签3}\n`; break;
+            case 'image': insert = `\n![图片说明](https://placeholder.com/600x400)\n`; break;
+            case 'grid2': insert = `\n:::grid-2\n![](image1.jpg)\n![](image2.jpg)\n:::\n`; break;
+            case 'grid3': insert = `\n:::grid-3\n![](image1.jpg)\n![](image2.jpg)\n![](image3.jpg)\n:::\n`; break;
+            case 'hr': insert = `\n---\n`; break;
+        }
+
+        ta.value = before + insert + after;
+        ta.selectionStart = ta.selectionEnd = start + insert.length;
+        ta.focus();
+        updatePreview();
+    }
+
+    /* ================================================================
+       VIEW MODES
+    ================================================================ */
+    function setView(mode) {
+        let ep = document.getElementById('editor-panel');
+        let pp = document.getElementById('preview-panel');
+        let rh = document.getElementById('resize-handle');
+
+        document.querySelectorAll('.toolbar-center .toolbar-btn').forEach(b => b.classList.remove('active'));
+        event.target.classList.add('active');
+
+        if (mode === 'split') {
+            ep.style.display = 'flex'; pp.style.display = 'flex'; rh.style.display = 'block';
+            ep.style.flex = '1'; pp.style.flex = '1';
+        } else if (mode === 'editor') {
+            ep.style.display = 'flex'; pp.style.display = 'none'; rh.style.display = 'none';
+            ep.style.flex = '1';
+        } else if (mode === 'preview') {
+            ep.style.display = 'none'; pp.style.display = 'flex'; rh.style.display = 'none';
+            pp.style.flex = '1';
+        }
+    }
+
+    /* ================================================================
+       SETTINGS
+    ================================================================ */
+    function openSettings() {
+        let footerCb = document.getElementById('s-show-footer');
+        if (footerCb) footerCb.checked = showFixedFooter;
+        document.getElementById('settings-overlay').classList.add('active');
+    }
+    function closeSettings() {
+        document.getElementById('settings-overlay').classList.remove('active');
+    }
+    function openHelp() {
+        document.getElementById('help-overlay').classList.add('active');
+    }
+    function closeHelp() {
+        document.getElementById('help-overlay').classList.remove('active');
+    }
+    function updateSetting() {
+        CONFIG.accent = document.getElementById('s-accent').value;
+        CONFIG.fontSize = parseInt(document.getElementById('s-fontsize').value);
+        CONFIG.lineHeight = parseInt(document.getElementById('s-lineheight').value) / 10;
+        CONFIG.paraGap = parseInt(document.getElementById('s-paragap').value) / 10;
+        CONFIG.bg = document.getElementById('s-bg').value;
+        CONFIG.textColor = document.getElementById('s-textcolor').value;
+
+        document.getElementById('sv-accent').textContent = CONFIG.accent;
+        document.getElementById('sv-fontsize').textContent = CONFIG.fontSize + 'px';
+        document.getElementById('sv-lineheight').textContent = CONFIG.lineHeight.toFixed(1);
+        document.getElementById('sv-paragap').textContent = CONFIG.paraGap.toFixed(1) + 'em';
+        document.getElementById('sv-bg').textContent = CONFIG.bg;
+        document.getElementById('sv-textcolor').textContent = CONFIG.textColor;
+
+        updatePreview();
+    }
+
+    /* ================================================================
+       RESIZE HANDLE
+    ================================================================ */
+    (function initResize() {
+        let handle = document.getElementById('resize-handle');
+        let ep = document.getElementById('editor-panel');
+        let pp = document.getElementById('preview-panel');
+        let dragging = false;
+
+        handle.addEventListener('mousedown', (e) => {
+            dragging = true;
+            handle.classList.add('dragging');
+            e.preventDefault();
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!dragging) return;
+            let main = document.getElementById('main');
+            let rect = main.getBoundingClientRect();
+            let ratio = (e.clientX - rect.left) / rect.width;
+            ratio = Math.max(0.2, Math.min(0.8, ratio));
+            ep.style.flex = ratio;
+            pp.style.flex = 1 - ratio;
+        });
+
+        document.addEventListener('mouseup', () => {
+            dragging = false;
+            handle.classList.remove('dragging');
+        });
+    })();
+
+    /* ================================================================
+       TOAST
+    ================================================================ */
+    function showToast(msg) {
+        let toast = document.getElementById('toast');
+        toast.textContent = msg;
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 2500);
+    }
+
+    /* ================================================================
+       EXAMPLE CONTENT
+    ================================================================ */
+    function loadExample() {
+        let example = `---
+subtitle: AI 电商全案实测
+title: "Nano\\nBanana 2"
+tags: 快, 好, 省
+banner: Nano Banana 2 刚上线，官方数据很简单：生成速度比 Pro 快数倍，价格减半，画面质量基本持平
+steps: "品牌方向|先定调再出图, IP 形象|20 张批量生成, 故事分镜|让 IP 活起来, 产品包装|全产品线搞定"
+---
+
+## 01 准备工作
+
+在开始之前，我们需要准备一些基础素材。这一步非常关键，决定了后续所有生成结果的质量。
+
+需求清单拉出来大概是这些：
+
+:::checklist CHECKLIST
+- 故事片 IP 形象（主角，多角度、多表情、多动作）
+- 根据 IP 形象设计的产品包装（礼盒、口红、眼影盘、粉饼）
+- 故事片分镜（根据 IP 形象设计视频脚本）
+- 社媒种草图（小红书、抖音）
+- 春节营销海报
+- 电商主图和详情页
+:::
+
+> [!info] 建议先收集 10-20 张参考图，明确你想要的风格方向
+
+### 素材准备清单
+
+- 品牌 Logo 高清原图（**PNG 透明底**）
+- 产品主图（白底 + 场景图各 3-5 张）
+- 参考风格图（==国潮、新中式、赛博朋克==均可）
+- 品牌色值和字体规范文档
+
+打开 Nano Banana 2 的工作台，创建新项目，选择「**电商全案**」模板。
+
+---
+
+## 02 生成主视觉
+
+这是整个流程中最关键的一步。我们要利用 AI 生成一套完整的==主视觉方案==。
+
+核心要点是 **Prompt 的写法**。Nano Banana 2 支持中文 Prompt，但英文效果更稳定。
+
+> [!tip] 推荐使用中英混合 Prompt：先用中文描述画面，再用英文补充细节关键词
+
+### 推荐 Prompt 结构
+
+1. 主体描述（产品 + 场景）
+2. 风格关键词（国潮、扁平、3D 等）
+3. 色彩指定（品牌色 + 辅助色）
+4. 构图要求（居中、对称、留白等）
+5. 质量关键词（8K, masterpiece, best quality）
+
+:::dark
+**Pro Tips:** 不要把所有关键词都塞进一个 Prompt，分层次描述效果更好。先描述主体，再补充风格，最后加质量词。
+:::
+
+---
+
+## 03 批量出图与筛选
+
+有了主视觉之后，我们需要基于同一风格==批量生成==不同尺寸、不同场景的配套图片。
+
+Nano Banana 2 的批量功能非常强大：
+
+- 支持一键生成 **100+ 张**不同比例的图
+- 风格一致性比上一代提升 ==40%==
+- 生成速度：平均 **3-5 秒/张**
+
+> [!warning] 注意：批量生成时建议分批次进行，每批不超过 20 张，确保质量稳定
+
+:::summary
+**本节要点：**
+
+- 使用批量生成功能提升效率
+- 控制每批数量保证质量
+- 善用风格锁定功能维持一致性
+:::
+
+---
+
+## 04 后期调整与导出
+
+最后一步是对生成的图片进行微调，然后导出为各平台所需的格式。
+
+### 常用导出规格
+
+- 淘宝主图：800×800px, JPG
+- 详情页长图：750×不限, PNG
+- 小红书封面：1080×1440px, JPG
+- 朋友圈海报：1080×1920px, PNG
+
+:::info
+所有导出格式均支持一键批量处理，无需逐张设置。
+:::`;
+
+        document.getElementById('markdown-input').value = example;
+        updatePreview();
+        showToast('已加载示例内容');
+    }
+
+    /* ================================================================
+       KEYBOARD SHORTCUTS
+    ================================================================ */
+    document.addEventListener('keydown', (e) => {
+        // Ctrl+S = Copy to WeChat
+        if (e.ctrlKey && e.key === 's') {
+            e.preventDefault();
+            copyForWeChat();
+        }
+        // Escape = close modals
+        if (e.key === 'Escape') {
+            closeSettings();
+            closeHelp();
+        }
+    });
+
+    // Tab key in editor inserts spaces
+    document.getElementById('markdown-input').addEventListener('keydown', (e) => {
+        if (e.key === 'Tab') {
+            e.preventDefault();
+            let ta = e.target;
+            let start = ta.selectionStart;
+            ta.value = ta.value.substring(0, start) + '  ' + ta.value.substring(ta.selectionEnd);
+            ta.selectionStart = ta.selectionEnd = start + 2;
+            updatePreview();
+        }
+    });
+
+    /* ================================================================
+       图片粘贴（直接粘贴图片 + 飞书富文本）
+    ================================================================ */
+    document.getElementById('markdown-input').addEventListener('paste', async (e) => {
+        let ta = e.target;
+        let start = ta.selectionStart;
+        let end = ta.selectionEnd;
+
+        // 1. 直接粘贴图片文件
+        for (let i = 0; i < e.clipboardData.items.length; i++) {
+            let item = e.clipboardData.items[i];
+            if (item.type.startsWith('image/')) {
+                e.preventDefault();
+                let file = item.getAsFile();
+                let reader = new FileReader();
+                reader.onload = () => {
+                    let dataUrl = reader.result;
+                    let insert = '\n![](' + dataUrl + ')\n';
+                    ta.value = ta.value.substring(0, start) + insert + ta.value.substring(end);
+                    ta.selectionStart = ta.selectionEnd = start + insert.length;
+                    updatePreview();
+                    showToast('已插入图片（Base64）');
+                };
+                reader.readAsDataURL(file);
+                return;
+            }
+        }
+
+        // 2. 富文本 HTML 中的图片（如从飞书复制）
+        let html = e.clipboardData.getData('text/html');
+        if (html && html.indexOf('<img') !== -1) {
+            let doc = new DOMParser().parseFromString(html, 'text/html');
+            let imgs = doc.querySelectorAll('img');
+            if (imgs.length > 0) {
+                e.preventDefault();
+                let parts = [];
+                for (let img of imgs) {
+                    let src = img.getAttribute('src') || '';
+                    if (!src) continue;
+                    let dataUrl = src;
+                    if (src.startsWith('http')) {
+                        try {
+                            let res = await fetch(src, { mode: 'cors' });
+                            let blob = await res.blob();
+                            dataUrl = await new Promise((resolve) => {
+                                let r = new FileReader();
+                                r.onload = () => resolve(r.result);
+                                r.readAsDataURL(blob);
+                            });
+                        } catch (err) {
+                            showToast('图片链接无法转 Base64（跨域），已保留原链接');
+                        }
+                    }
+                    parts.push('![](' + dataUrl + ')');
+                }
+                let insert = '\n' + parts.join('\n') + '\n';
+                ta.value = ta.value.substring(0, start) + insert + ta.value.substring(end);
+                ta.selectionStart = ta.selectionEnd = start + insert.length;
+                updatePreview();
+                showToast('已插入 ' + parts.length + ' 张图片');
+                return;
+            }
+        }
+    });
+
+    /* ================================================================
+       INIT
+    ================================================================ */
+    document.getElementById('markdown-input').addEventListener('input', updatePreview);
+
+    // Load example on start
+    loadExample();
+    </script>
+</body>
+</html>
