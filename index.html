@@ -359,6 +359,18 @@
             font-family: inherit;
         }
         .ai-settings-modal input:focus { outline: none; border-color: #2dd4a8; }
+        .ai-provider-select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #2a2a2e;
+            border-radius: 8px;
+            background: #0e0e12;
+            color: #d0d0d0;
+            font-size: 13px;
+            font-family: inherit;
+            cursor: pointer;
+        }
+        .ai-provider-select:focus { outline: none; border-color: #2dd4a8; }
         .ai-settings-modal .btn-save { margin-top: 8px; padding: 10px 24px; border: none; border-radius: 8px; background: #2dd4a8; color: #0a0a0c; font-weight: 600; cursor: pointer; font-family: inherit; }
         .ai-settings-modal .btn-save:hover { background: #25b893; }
         .ai-loading { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 150; align-items: center; justify-content: center; }
@@ -636,17 +648,24 @@
     <div class="ai-settings-overlay" id="ai-settings-overlay" onclick="if(event.target===this)closeAISettings()">
         <div class="ai-settings-modal">
             <h3>AI 设置</h3>
-            <p>配置 OpenAI 或兼容接口后，可使用「AI 优化」将普通 Markdown 自动改写成适配当前模板的精致排版。</p>
+            <p>配置后可使用「AI 优化」将普通 Markdown 自动改写成适配当前模板的精致排版。</p>
             <div class="setting-group">
-                <label>API Key（必填）</label>
-                <input type="password" id="ai-api-key" placeholder="sk-xxx" autocomplete="off">
+                <label>使用服务</label>
+                <select id="ai-provider" class="ai-provider-select" onchange="toggleAICustomFields()">
+                    <option value="zhipu">智谱 GLM（仅需 API Key）</option>
+                    <option value="custom">自定义（OpenAI 兼容）</option>
+                </select>
             </div>
             <div class="setting-group">
-                <label>API 地址（可选，默认 OpenAI）</label>
+                <label id="ai-api-key-label">智谱 API Key（必填）</label>
+                <input type="password" id="ai-api-key" placeholder="在 open.bigmodel.cn 获取" autocomplete="off">
+            </div>
+            <div class="setting-group ai-custom-fields" id="ai-custom-fields" style="display:none;">
+                <label>API 地址</label>
                 <input type="text" id="ai-api-url" placeholder="https://api.openai.com/v1/chat/completions">
             </div>
-            <div class="setting-group">
-                <label>模型（可选）</label>
+            <div class="setting-group ai-custom-fields" id="ai-custom-model-wrap" style="display:none;">
+                <label>模型</label>
                 <input type="text" id="ai-model" placeholder="gpt-4o 或 gpt-3.5-turbo">
             </div>
             <button class="btn-save" onclick="saveAISettings()">保存</button>
@@ -1514,20 +1533,49 @@
        AI 设置与 AI 优化
     ================================================================ */
     const AI_STORAGE_KEY = 'jingge_ai_config';
+    const ZHIPU_GLM_API_URL = 'https://open.bigmodel.cn/api/paas/v4/chat/completions';
+    const ZHIPU_GLM_MODEL = 'glm-4-flash';
 
     function getAIConfig() {
         try {
             let raw = localStorage.getItem(AI_STORAGE_KEY);
-            if (raw) return JSON.parse(raw);
+            if (raw) {
+                let c = JSON.parse(raw);
+                if (c.provider === 'zhipu') {
+                    c.apiUrl = ZHIPU_GLM_API_URL;
+                    c.model = ZHIPU_GLM_MODEL;
+                }
+                return c;
+            }
         } catch (e) {}
-        return { apiKey: '', apiUrl: 'https://api.openai.com/v1/chat/completions', model: 'gpt-4o' };
+        return { provider: 'zhipu', apiKey: '', apiUrl: ZHIPU_GLM_API_URL, model: ZHIPU_GLM_MODEL };
+    }
+
+    function toggleAICustomFields() {
+        let provider = document.getElementById('ai-provider').value;
+        let wrap = document.getElementById('ai-custom-fields');
+        let modelWrap = document.getElementById('ai-custom-model-wrap');
+        let keyLabel = document.getElementById('ai-api-key-label');
+        if (provider === 'zhipu') {
+            wrap.style.display = 'none';
+            modelWrap.style.display = 'none';
+            keyLabel.textContent = '智谱 API Key（必填）';
+            document.getElementById('ai-api-key').placeholder = '在 open.bigmodel.cn 获取';
+        } else {
+            wrap.style.display = 'block';
+            modelWrap.style.display = 'block';
+            keyLabel.textContent = 'API Key（必填）';
+            document.getElementById('ai-api-key').placeholder = 'sk-xxx';
+        }
     }
 
     function openAISettings() {
         let c = getAIConfig();
+        document.getElementById('ai-provider').value = c.provider || 'zhipu';
         document.getElementById('ai-api-key').value = c.apiKey || '';
         document.getElementById('ai-api-url').value = c.apiUrl || 'https://api.openai.com/v1/chat/completions';
         document.getElementById('ai-model').value = c.model || 'gpt-4o';
+        toggleAICustomFields();
         document.getElementById('ai-settings-overlay').classList.add('active');
     }
 
@@ -1536,10 +1584,17 @@
     }
 
     function saveAISettings() {
+        let provider = document.getElementById('ai-provider').value;
         let apiKey = document.getElementById('ai-api-key').value.trim();
-        let apiUrl = document.getElementById('ai-api-url').value.trim() || 'https://api.openai.com/v1/chat/completions';
-        let model = document.getElementById('ai-model').value.trim() || 'gpt-4o';
-        localStorage.setItem(AI_STORAGE_KEY, JSON.stringify({ apiKey, apiUrl, model }));
+        let payload = { provider, apiKey };
+        if (provider === 'custom') {
+            payload.apiUrl = document.getElementById('ai-api-url').value.trim() || 'https://api.openai.com/v1/chat/completions';
+            payload.model = document.getElementById('ai-model').value.trim() || 'gpt-4o';
+        } else {
+            payload.apiUrl = ZHIPU_GLM_API_URL;
+            payload.model = ZHIPU_GLM_MODEL;
+        }
+        localStorage.setItem(AI_STORAGE_KEY, JSON.stringify(payload));
         closeAISettings();
         showToast('AI 设置已保存');
     }
