@@ -221,6 +221,40 @@
             background: #2a2a2e;
             border-radius: 4px;
         }
+        .style-preview-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 14px;
+            background: #1a1a1e;
+            border-bottom: 1px solid #25252a;
+            flex-shrink: 0;
+        }
+        .style-preview-label {
+            font-size: 12px;
+            color: #888;
+            margin-right: 8px;
+            font-weight: 600;
+        }
+        .style-preview-bar label {
+            font-size: 12px;
+            color: #999;
+            margin: 0 2px 0 0;
+        }
+        .style-preview-select {
+            padding: 4px 10px;
+            font-size: 12px;
+            background: #25252a;
+            border: 1px solid #333;
+            border-radius: 6px;
+            color: #ddd;
+            cursor: pointer;
+            min-width: 110px;
+        }
+        .style-preview-select:hover {
+            border-color: #2dd4a8;
+            color: #fff;
+        }
 
         /* ========== FORMAT BAR (between panel header and editor) ========== */
         .format-bar {
@@ -473,12 +507,14 @@
     <div class="toolbar">
         <div class="toolbar-left">
             <div class="toolbar-logo">镜哥排版器 <span id="toolbar-theme-label">镜哥AI排版</span></div>
-            <select id="template-select" class="template-select" onchange="applyTemplate(this.value)" title="选择排版模板">
+            <select id="template-select" class="template-select" onchange="applyTemplate(this.value);syncPreviewThemeFromToolbar();" title="选择排版模板（与右侧预览中心同步）">
                 <option value="dark-teal">深色科技</option>
                 <option value="dark-orange">深色暖橙</option>
                 <option value="light-minimal">浅色极简</option>
                 <option value="light-blue">浅色蓝调</option>
                 <option value="light-amber">浅色暖咖</option>
+                <option value="jingge">镜哥风格</option>
+                <option value="jingge2">镜哥草稿</option>
             </select>
         </div>
         <div class="toolbar-center">
@@ -536,6 +572,36 @@
             <div class="panel-header">
                 <span class="panel-title">Preview</span>
                 <span style="font-size:12px;color:#444;">微信公众号预览</span>
+            </div>
+            <div class="style-preview-bar" id="style-preview-bar">
+                <span class="style-preview-label">模板预览中心</span>
+                <label>主题</label>
+                <select id="preview-theme" class="style-preview-select" title="主题（与左上角同步）" onchange="document.getElementById('template-select').value=this.value;applyTemplate(this.value);updatePreview();">
+                    <option value="dark-teal">深色科技</option>
+                    <option value="dark-orange">深色暖橙</option>
+                    <option value="light-minimal">浅色极简</option>
+                    <option value="light-blue">浅色蓝调</option>
+                    <option value="light-amber">浅色暖咖</option>
+                    <option value="jingge">镜哥风格</option>
+                    <option value="jingge2">镜哥草稿</option>
+                </select>
+                <label>头部</label>
+                <select id="preview-hstyle" class="style-preview-select" title="头部风格（可覆盖正文中的 hstyle）" onchange="updatePreview()">
+                    <option value="">跟随正文</option>
+                    <option value="A">A 默认</option>
+                    <option value="B">B 边框卡片</option>
+                    <option value="C">C 暗底</option>
+                    <option value="D">D 居中</option>
+                    <option value="E">E 极简徽章</option>
+                </select>
+                <label>步骤</label>
+                <select id="preview-sstyle" class="style-preview-select" title="步骤风格（可覆盖正文中的 sstyle）" onchange="updatePreview()">
+                    <option value="">跟随正文</option>
+                    <option value="A">A 高亮首卡</option>
+                    <option value="B">B 圆圈列表</option>
+                    <option value="C">C 时间轴</option>
+                    <option value="D">D 渐变序号</option>
+                </select>
             </div>
             <div class="preview-area" id="preview-area">
                 <div class="article-container">
@@ -607,7 +673,9 @@
         <div class="help-modal">
             <h3>Markdown 语法参考</h3>
             <table class="help-table">
-                <tr><td>--- 开头 front matter</td><td>动态头部：subtitle, title, tags, banner, steps, image</td></tr>
+                <tr><td>--- 开头 front matter</td><td>动态头部：subtitle, title, tags, banner, steps, image, hstyle, sstyle</td></tr>
+                <tr><td>hstyle: A/B/C/D/E</td><td>头部风格：A默认 B边框卡片 C暗底 D居中 E极简徽章</td></tr>
+                <tr><td>sstyle: A/B/C/D</td><td>步骤风格：A高亮首卡 B圆圈列表 C时间轴 D渐变序号</td></tr>
                 <tr><td># 文章标题</td><td>一级标题（文章主标题，居中）</td></tr>
                 <tr><td>## 01 章节标题</td><td>带编号的章节标题（大号数字 + 渐变线）</td></tr>
                 <tr><td>## 普通标题</td><td>二级标题（无编号）</td></tr>
@@ -618,7 +686,14 @@
                 <tr><td>`代码`</td><td>行内代码</td></tr>
                 <tr><td>~~删除线~~</td><td>删除线文本</td></tr>
                 <tr><td>[文字](url)</td><td>超链接</td></tr>
-                <tr><td>![说明](url)</td><td>图片（连续多图自动网格）</td></tr>
+                <tr><td>![说明](url)</td><td>图片（带外框线，连续多图自动网格）</td></tr>
+                <tr><td colspan="2" style="padding:12px 0 4px 0;"><strong style="color:#888;">图片外框示意图</strong></td></tr>
+                <tr><td colspan="2" style="padding:8px;vertical-align:middle;">
+                    <div id="help-img-schematic" style="max-width:200px;padding:12px;border:2px solid #2dd4a8;border-radius:12px;background:#1a1a1e;text-align:center;">
+                        <div style="height:80px;background:linear-gradient(135deg,#25252a 0%,#1e1e22 100%);border-radius:8px;display:flex;align-items:center;justify-content:center;color:#666;font-size:13px;">图片区域</div>
+                        <div style="margin-top:6px;font-size:11px;color:#2dd4a8;">↑ 外框线</div>
+                    </div>
+                </td></tr>
                 <tr><td>---</td><td>分割线</td></tr>
                 <tr><td>- 列表项</td><td>无序列表（绿色圆点）</td></tr>
                 <tr><td>1. 列表项</td><td>有序列表（绿色数字）</td></tr>
@@ -630,7 +705,20 @@
                 <tr><td>:::tip ... :::</td><td>提示块</td></tr>
                 <tr><td>:::card ... :::</td><td>卡片块（深色卡片背景）</td></tr>
                 <tr><td>:::dark ... :::</td><td>暗色卡片（更深的背景）</td></tr>
-                <tr><td>:::summary ... :::</td><td>总结块（带图标和边框）</td></tr>
+                <tr><td>:::summary ... :::</td><td>总结块 — 浅黄高亮框（镜哥主题专属）</td></tr>
+                <tr><td>:::digest ... :::</td><td>阅前须知 — 灰底卡片 + 虚线分段</td></tr>
+                <tr><td>:::numbered ... :::</td><td>数字徽章 — 圆形序号 + 无框排列</td></tr>
+                <tr><td>:::intro ... :::</td><td>侧边线 — 无外框，每段左侧竖线</td></tr>
+                <tr><td>:::tail ... :::</td><td>尾图 — 放在点赞区之后，带外框</td></tr>
+                <tr><td>:::quote ... :::</td><td>引用A — 大引号 + 左彩线，末段为来源</td></tr>
+                <tr><td>:::quote-b ... :::</td><td>引用B — 渐变背景 + 上下彩线 + 斜体</td></tr>
+                <tr><td>:::quote-c ... :::</td><td>引用C — 头像气泡对话风格</td></tr>
+                <tr><td>:::flow ... :::</td><td>竖排流程 — 序号圆 + 连线，每段为一步</td></tr>
+                <tr><td>:::stat ... :::</td><td>数据卡片 — 每行：数字|标签|说明</td></tr>
+                <tr><td>:::compare ... :::</td><td>对比块 — 用 --- 分隔左右列</td></tr>
+                <tr><td>:::callout 🚀 ... :::</td><td>醒目强调 — 自定义图标 + 渐变背景</td></tr>
+                <tr><td>:::highlight ... :::</td><td>高亮大字 — 双侧色条 + 居中大字</td></tr>
+                <tr><td>:::divider A/B/C:::</td><td>装饰分割线：A渐变线 B菱形 C圆点</td></tr>
                 <tr><td>:::center ... :::</td><td>居中块</td></tr>
                 <tr><td>:::subtitle ... :::</td><td>副标题（带绿色圆点）</td></tr>
                 <tr><td>:::checklist 标题 ... :::</td><td>终端/清单块（macOS 窗口风格）</td></tr>
@@ -758,6 +846,40 @@
             subtitleColor: '#78716c',
             borderColor: '#e7e5e4',
         },
+        'jingge': {
+            name: '镜哥风格',
+            accent: '#d97706',
+            fontSize: 16,
+            lineHeight: 2.0,
+            paraGap: 1.6,
+            bg: '#ffffff',
+            cardBg: '#fafaf8',
+            darkCardBg: '#f5f0e8',
+            textColor: '#333333',
+            titleColor: '#111111',
+            subtitleColor: '#666666',
+            borderColor: '#e5e0d8',
+            summaryBg: '#fffbeb',
+            summaryBorder: '#fcd34d',
+            summaryTitleColor: '#92400e',
+        },
+        'jingge2': {
+            name: '镜哥草稿',
+            accent: '#d97706',
+            fontSize: 16,
+            lineHeight: 2.0,
+            paraGap: 1.6,
+            bg: '#ffffff',
+            cardBg: '#fafaf8',
+            darkCardBg: '#f5f0e8',
+            textColor: '#333333',
+            titleColor: '#111111',
+            subtitleColor: '#666666',
+            borderColor: '#e5e0d8',
+            summaryBg: '#fffbeb',
+            summaryBorder: '#fcd34d',
+            summaryTitleColor: '#92400e',
+        },
     };
     let CONFIG = { ...TEMPLATES['dark-teal'] };
 
@@ -766,8 +888,15 @@
         CONFIG = { ...TEMPLATES[id] };
         let sel = document.getElementById('template-select');
         if (sel) sel.value = id;
+        syncPreviewThemeFromToolbar();
         syncSettingsFromConfig();
         updatePreview();
+    }
+
+    function syncPreviewThemeFromToolbar() {
+        let ts = document.getElementById('template-select');
+        let pt = document.getElementById('preview-theme');
+        if (ts && pt && pt.value !== ts.value) pt.value = ts.value;
     }
 
     function syncSettingsFromConfig() {
@@ -808,71 +937,291 @@
         return { fm: Object.keys(fm).length ? fm : null, body };
     }
 
+    /* ── 头部风格渲染（hstyle: A/B/C/D/E，sstyle: A/B/C/D）──────────────── */
     function renderFrontMatterHeader(fm) {
+        let hstyle = (fm.hstyle || 'A').toUpperCase();
+        let sstyle = (fm.sstyle || 'A').toUpperCase();
         let html = '';
-        if (fm.subtitle) {
-            html += `<section style="margin:12px 0;">
-                <span style="display:inline-flex;align-items:center;gap:6px;font-size:14px;color:${CONFIG.accent};font-weight:500;">
-                    <span style="display:inline-block;width:8px;height:8px;background:${CONFIG.accent};border-radius:50%;"></span>
-                    ${inlineFormat(fm.subtitle)}
-                </span>
-            </section>`;
-        }
-        if (fm.title) {
-            let parts = fm.title.split('\n');
-            let line1 = inlineFormat(parts[0] || '');
-            let line2 = parts[1] ? inlineFormat(parts[1]) : '';
-            let titleHtml = line2
-                ? `<span style="color:${CONFIG.titleColor};">${line1}</span><br/><span style="color:${CONFIG.accent};font-weight:700;">${line2}</span>`
-                : line1;
-            html += `<section style="margin:16px 0;">
-                <h2 style="font-size:24px;font-weight:700;line-height:1.3;margin:0;">${titleHtml}</h2>
-                <section style="height:2px;background:${CONFIG.accent};border-radius:1px;margin-top:8px;width:80px;"></section>
-            </section>`;
-        }
-        if (fm.tags) {
-            let tags = fm.tags.split(/[,，]/).map(s => s.trim()).filter(Boolean);
-            html += renderTags(tags);
-        }
+
+        // ── Style A (默认): 橙点副标题 + 粗标题下划线 + 彩色标签 ─────────────
+        if (hstyle === 'A') {
+            if (fm.subtitle) {
+                html += `<section style="margin:12px 0;">
+                    <span style="display:inline-flex;align-items:center;gap:6px;font-size:14px;color:${CONFIG.accent};font-weight:500;">
+                        <span style="display:inline-block;width:8px;height:8px;background:${CONFIG.accent};border-radius:50%;"></span>
+                        ${inlineFormat(fm.subtitle)}
+                    </span>
+                </section>`;
+            }
+            if (fm.title) {
+                let parts = fm.title.split('\n');
+                let line1 = inlineFormat(parts[0] || '');
+                let line2 = parts[1] ? inlineFormat(parts[1]) : '';
+                let titleHtml = line2
+                    ? `<span style="color:${CONFIG.titleColor};">${line1}</span><br/><span style="color:${CONFIG.accent};font-weight:700;">${line2}</span>`
+                    : line1;
+                html += `<section style="margin:16px 0;">
+                    <h2 style="font-size:24px;font-weight:700;line-height:1.3;margin:0;">${titleHtml}</h2>
+                    <section style="height:2px;background:${CONFIG.accent};border-radius:1px;margin-top:8px;width:80px;"></section>
+                </section>`;
+            }
+            if (fm.tags) {
+                let tags = fm.tags.split(/[,，]/).map(s => s.trim()).filter(Boolean);
+                html += renderTags(tags);
+            }
         if (fm.image) {
+            let borderColor = CONFIG.borderColor || '#333';
             html += `<section style="margin:12px 0;">
-                <img src="${fm.image}" alt="" style="max-width:120px;height:auto;border-radius:8px;float:right;margin-left:12px;" />
+                <section style="display:inline-block;padding:8px;border:1px solid ${borderColor};border-radius:10px;float:right;margin-left:12px;background:${CONFIG.cardBg || 'transparent'};">
+                    <img src="${fm.image}" alt="" style="max-width:120px;height:auto;border-radius:8px;display:block;" />
+                </section>
             </section>`;
+            }
+            if (fm.banner) {
+                html += `<section style="margin:16px 0;padding:14px 20px;background:${CONFIG.accent};border-radius:10px;">
+                    <p style="margin:0;font-size:15px;line-height:1.5;color:#0a0a0c;font-weight:500;">${inlineFormat(fm.banner)}</p>
+                </section>`;
+            }
+            if (fm.steps) html += renderFmSteps(fm.steps, sstyle);
+            return html ? `<section style="margin-bottom:24px;">${html}</section>` : '';
         }
-        if (fm.banner) {
-            html += `<section style="margin:16px 0;padding:14px 20px;background:${CONFIG.accent};border-radius:10px;">
-                <p style="margin:0;font-size:15px;line-height:1.5;color:#0a0a0c;font-weight:500;">${inlineFormat(fm.banner)}</p>
+
+        // ── Style B (边框卡片): 细边框 + 左侧彩线 + #标签风格 ────────────────
+        if (hstyle === 'B') {
+            let subtitleHtml = fm.subtitle
+                ? `<p style="margin:0 0 10px 0;font-size:12px;color:${CONFIG.subtitleColor};letter-spacing:2px;text-transform:uppercase;font-weight:600;">${inlineFormat(fm.subtitle)}</p>`
+                : '';
+            let titleHtml = '';
+            if (fm.title) {
+                let parts = fm.title.split('\n');
+                let line1 = inlineFormat(parts[0] || '');
+                let line2 = parts[1] ? inlineFormat(parts[1]) : '';
+                titleHtml = line2
+                    ? `<h2 style="margin:0 0 2px 0;font-size:26px;font-weight:800;color:${CONFIG.titleColor};line-height:1.2;">${line1}</h2>
+                       <h2 style="margin:0;font-size:26px;font-weight:800;color:${CONFIG.accent};line-height:1.2;">${line2}</h2>`
+                    : `<h2 style="margin:0;font-size:26px;font-weight:800;color:${CONFIG.titleColor};line-height:1.2;">${line1}</h2>`;
+            }
+            let tagsHtml = '';
+            if (fm.tags) {
+                let tags = fm.tags.split(/[,，]/).map(s => s.trim()).filter(Boolean);
+                tagsHtml = `<section style="margin-top:14px;">${tags.map(t => `<span style="font-size:13px;color:${CONFIG.subtitleColor};margin-right:12px;font-weight:500;">#${t}</span>`).join('')}</section>`;
+            }
+            let stepsHtml = fm.steps ? renderFmSteps(fm.steps, sstyle) : '';
+            html = `<section style="margin-bottom:24px;padding:20px 24px;border:1.5px solid ${CONFIG.borderColor};border-left:4px solid ${CONFIG.accent};border-radius:8px;background:${CONFIG.cardBg};">
+                ${subtitleHtml}${titleHtml}${tagsHtml}${stepsHtml}
             </section>`;
+            return html;
         }
-        if (fm.steps) {
-            let stepEntries = fm.steps.split(/[,，]/).map(s => s.trim()).filter(Boolean);
-            let stepsHtml = stepEntries.map((entry, i) => {
-                let [title, subtitle] = entry.split('|').map(s => s.trim());
-                subtitle = subtitle || '';
+
+        // ── Style C (暗底卡片): 深色背景 + 亮色标题 + 透明标签 ──────────────
+        if (hstyle === 'C') {
+            let subtitleHtml = fm.subtitle
+                ? `<p style="margin:0 0 12px 0;font-size:12px;color:${CONFIG.accent};font-weight:700;letter-spacing:2.5px;text-transform:uppercase;">${inlineFormat(fm.subtitle)}</p>`
+                : '';
+            let titleHtml = '';
+            if (fm.title) {
+                let parts = fm.title.split('\n');
+                let line1 = inlineFormat(parts[0] || '');
+                let line2 = parts[1] ? inlineFormat(parts[1]) : '';
+                titleHtml = line2
+                    ? `<h2 style="margin:0;font-size:28px;font-weight:800;color:#fff;line-height:1.25;">${line1}<br/><span style="color:${CONFIG.accent};">${line2}</span></h2>`
+                    : `<h2 style="margin:0;font-size:28px;font-weight:800;color:#fff;line-height:1.25;">${line1}</h2>`;
+            }
+            let tagsHtml = '';
+            if (fm.tags) {
+                let tags = fm.tags.split(/[,，]/).map(s => s.trim()).filter(Boolean);
+                tagsHtml = `<section style="margin-top:16px;display:flex;flex-wrap:wrap;gap:6px;">${tags.map(t => `<span style="padding:3px 12px;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);border-radius:4px;font-size:12px;color:rgba(255,255,255,0.85);font-weight:500;">${t}</span>`).join('')}</section>`;
+            }
+            let stepsHtml = fm.steps ? renderFmSteps(fm.steps, sstyle) : '';
+            html = `<section style="margin-bottom:24px;padding:24px 28px;background:${CONFIG.darkCardBg || '#1a1a1a'};border-radius:12px;">
+                ${subtitleHtml}${titleHtml}${tagsHtml}${stepsHtml}
+            </section>`;
+            return html;
+        }
+
+        // ── Style D (居中大字): 居中排版 + 渐变装饰线 ────────────────────────
+        if (hstyle === 'D') {
+            let subtitleHtml = fm.subtitle
+                ? `<p style="margin:0 0 12px 0;font-size:12px;color:${CONFIG.subtitleColor};letter-spacing:3px;text-align:center;font-weight:500;">${inlineFormat(fm.subtitle)}</p>`
+                : '';
+            let titleHtml = '';
+            if (fm.title) {
+                let parts = fm.title.split('\n');
+                let line1 = inlineFormat(parts[0] || '');
+                let line2 = parts[1] ? inlineFormat(parts[1]) : '';
+                titleHtml = line2
+                    ? `<h2 style="margin:0 0 4px 0;font-size:28px;font-weight:800;text-align:center;color:${CONFIG.titleColor};line-height:1.2;">${line1}</h2>
+                       <h2 style="margin:0;font-size:28px;font-weight:800;text-align:center;color:${CONFIG.accent};line-height:1.2;">${line2}</h2>`
+                    : `<h2 style="margin:0;font-size:28px;font-weight:800;text-align:center;color:${CONFIG.titleColor};">${line1}</h2>`;
+            }
+            let divider = `<section style="margin:14px auto;width:60px;height:3px;background:linear-gradient(to right,${CONFIG.accent},${CONFIG.accent}40);border-radius:2px;"></section>`;
+            let tagsHtml = '';
+            if (fm.tags) {
+                let tags = fm.tags.split(/[,，]/).map(s => s.trim()).filter(Boolean);
+                tagsHtml = `<section style="margin-top:14px;text-align:center;display:flex;flex-wrap:wrap;justify-content:center;gap:6px;">${tags.map(t => `<span style="padding:4px 16px;background:${CONFIG.accent}18;border-radius:20px;font-size:13px;color:${CONFIG.accent};font-weight:600;">${t}</span>`).join('')}</section>`;
+            }
+            let stepsHtml = fm.steps ? renderFmSteps(fm.steps, sstyle) : '';
+            html = `<section style="margin-bottom:24px;padding:24px 20px;text-align:center;">
+                ${subtitleHtml}${titleHtml}${divider}${tagsHtml}${stepsHtml}
+            </section>`;
+            return html;
+        }
+
+        // ── Style E (极简徽章): 小色块副标题 + 左侧竖线标题 ─────────────────
+        if (hstyle === 'E') {
+            if (fm.subtitle) {
+                html += `<section style="margin-bottom:8px;">
+                    <span style="font-size:11px;background:${CONFIG.accent};color:#fff;padding:3px 10px;border-radius:3px;font-weight:700;letter-spacing:1px;">${inlineFormat(fm.subtitle)}</span>
+                </section>`;
+            }
+            if (fm.title) {
+                let parts = fm.title.split('\n');
+                let line1 = inlineFormat(parts[0] || '');
+                let line2 = parts[1] ? inlineFormat(parts[1]) : '';
+                let t = line2
+                    ? `${line1}<br/><span style="color:${CONFIG.accent};">${line2}</span>`
+                    : line1;
+                html += `<section style="margin:10px 0 14px;padding-left:14px;border-left:4px solid ${CONFIG.accent};">
+                    <h2 style="font-size:22px;font-weight:700;line-height:1.4;margin:0;color:${CONFIG.titleColor};">${t}</h2>
+                </section>`;
+            }
+            if (fm.tags) {
+                let tags = fm.tags.split(/[,，]/).map(s => s.trim()).filter(Boolean);
+                html += `<section style="margin:10px 0;display:flex;flex-wrap:wrap;gap:4px;">${tags.map(t => `<span style="font-size:12px;color:${CONFIG.subtitleColor};margin-right:10px;">— ${t}</span>`).join('')}</section>`;
+            }
+            if (fm.banner) {
+                html += `<section style="margin:14px 0;padding:12px 18px;border-left:3px solid ${CONFIG.accent};background:${CONFIG.cardBg};">
+                    <p style="margin:0;font-size:14px;line-height:1.6;color:${CONFIG.textColor};">${inlineFormat(fm.banner)}</p>
+                </section>`;
+            }
+            if (fm.steps) html += renderFmSteps(fm.steps, sstyle);
+            return html ? `<section style="margin-bottom:24px;">${html}</section>` : '';
+        }
+
+        return html ? `<section style="margin-bottom:24px;">${html}</section>` : '';
+    }
+
+    /* ── Steps 风格渲染（sstyle: A/B/C/D）──────────────────────────────── */
+    function renderFmSteps(stepsStr, sstyle) {
+        let entries = stepsStr.split(/[,，]/).map(s => s.trim()).filter(Boolean);
+        let count = entries.length;
+        sstyle = (sstyle || 'A').toUpperCase();
+
+        // ── Steps A (默认): 第一卡片高亮，其余灰底卡片 ───────────────────────
+        if (sstyle === 'A') {
+            let stepsHtml = entries.map((entry, i) => {
+                let [title, sub] = entry.split('|').map(s => s.trim());
+                sub = sub || '';
                 let isFirst = i === 0;
                 return `<section style="display:inline-block;padding:10px 16px;border-radius:8px;margin-right:8px;margin-bottom:8px;min-width:100px;${isFirst ? `background:${CONFIG.accent};` : `background:${CONFIG.cardBg};border:1px solid ${CONFIG.borderColor};`}">
-                    <span style="font-size:11px;color:${isFirst ? '#0a0a0c' : CONFIG.subtitleColor};">STEP ${String(i + 1).padStart(2, '0')}</span>
+                    <span style="font-size:11px;color:${isFirst ? '#0a0a0c' : CONFIG.subtitleColor};display:block;">STEP ${String(i + 1).padStart(2, '0')}</span>
                     <p style="margin:4px 0 0 0;font-size:14px;font-weight:700;color:${isFirst ? '#0a0a0c' : CONFIG.titleColor};">${title || ''}</p>
-                    <p style="margin:2px 0 0 0;font-size:12px;color:${isFirst ? '#0a0a0c' : CONFIG.subtitleColor};opacity:0.9;">${subtitle}</p>
+                    ${sub ? `<p style="margin:2px 0 0 0;font-size:12px;color:${isFirst ? '#0a0a0c' : CONFIG.subtitleColor};opacity:0.9;">${sub}</p>` : ''}
                 </section>`;
             }).join('');
-            html += `<section style="margin:16px 0;">
+            return `<section style="margin:16px 0;">
                 <section style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
-                    <span style="width:14px;height:14px;background:${CONFIG.accent};border-radius:3px;"></span>
-                    <span style="font-size:13px;font-weight:700;color:${CONFIG.titleColor};letter-spacing:2px;">${stepEntries.length} STEPS + SUMMARY</span>
+                    <span style="width:14px;height:14px;background:${CONFIG.accent};border-radius:3px;display:inline-block;"></span>
+                    <span style="font-size:13px;font-weight:700;color:${CONFIG.titleColor};letter-spacing:2px;">${count} STEPS + SUMMARY</span>
                 </section>
                 <section style="display:flex;flex-wrap:wrap;gap:4px;">${stepsHtml}</section>
             </section>`;
         }
-        return html ? `<section style="margin-bottom:24px;">${html}</section>` : '';
+
+        // ── Steps B (圆圈列表): 圆形序号 + 文字列表，无外框 ──────────────────
+        if (sstyle === 'B') {
+            let stepsHtml = entries.map((entry, i) => {
+                let [title, sub] = entry.split('|').map(s => s.trim());
+                sub = sub || '';
+                return `<section style="display:flex;align-items:flex-start;gap:14px;margin-bottom:14px;">
+                    <section style="flex-shrink:0;width:34px;height:34px;background:${CONFIG.accent}20;border-radius:50%;border:2px solid ${CONFIG.accent};display:flex;align-items:center;justify-content:center;">
+                        <span style="font-size:14px;font-weight:800;color:${CONFIG.accent};">${i + 1}</span>
+                    </section>
+                    <section style="padding-top:5px;flex:1;">
+                        <p style="margin:0;font-size:15px;font-weight:700;color:${CONFIG.titleColor};">${title || ''}</p>
+                        ${sub ? `<p style="margin:3px 0 0;font-size:12px;color:${CONFIG.subtitleColor};">${sub}</p>` : ''}
+                    </section>
+                </section>`;
+            }).join('');
+            return `<section style="margin:16px 0;padding:16px 18px;background:${CONFIG.cardBg};border-radius:10px;border:1px solid ${CONFIG.borderColor};">
+                <p style="margin:0 0 14px 0;font-size:12px;font-weight:700;color:${CONFIG.subtitleColor};letter-spacing:2px;">CONTENTS · ${count} STEPS</p>
+                ${stepsHtml}
+            </section>`;
+        }
+
+        // ── Steps C (时间轴): 横向连线 + 圆点 + 文字 ─────────────────────────
+        if (sstyle === 'C') {
+            let stepsHtml = entries.map((entry, i) => {
+                let [title, sub] = entry.split('|').map(s => s.trim());
+                sub = sub || '';
+                let isFirst = i === 0;
+                return `<section style="flex:1;text-align:center;padding:0 6px;">
+                    <section style="width:28px;height:28px;border-radius:50%;background:${isFirst ? CONFIG.accent : CONFIG.cardBg};border:2px solid ${CONFIG.accent};margin:0 auto 10px;display:flex;align-items:center;justify-content:center;">
+                        <span style="font-size:12px;font-weight:700;color:${isFirst ? '#fff' : CONFIG.accent};">${i + 1}</span>
+                    </section>
+                    <p style="margin:0;font-size:13px;font-weight:700;color:${CONFIG.titleColor};line-height:1.3;">${title || ''}</p>
+                    ${sub ? `<p style="margin:4px 0 0 0;font-size:11px;color:${CONFIG.subtitleColor};line-height:1.4;">${sub}</p>` : ''}
+                </section>`;
+            });
+            let withConnectors = stepsHtml.reduce((acc, el, i) => {
+                acc.push(el);
+                if (i < stepsHtml.length - 1) {
+                    acc.push(`<section style="flex-shrink:0;width:20px;align-self:flex-start;margin-top:13px;height:2px;background:${CONFIG.accent}50;"></section>`);
+                }
+                return acc;
+            }, []);
+            return `<section style="margin:16px 0;">
+                <p style="margin:0 0 14px 0;font-size:12px;font-weight:700;color:${CONFIG.subtitleColor};letter-spacing:2px;">${count} STEPS OVERVIEW</p>
+                <section style="display:flex;align-items:flex-start;">${withConnectors.join('')}</section>
+            </section>`;
+        }
+
+        // ── Steps D (渐变序号): 大数字序号 + 表格式布局 ──────────────────────
+        if (sstyle === 'D') {
+            let stepsHtml = entries.map((entry, i) => {
+                let [title, sub] = entry.split('|').map(s => s.trim());
+                sub = sub || '';
+                let opacity = Math.max(1 - i * 0.12, 0.35).toFixed(2);
+                return `<section style="display:flex;align-items:center;border-bottom:1px solid ${CONFIG.borderColor};">
+                    <section style="flex-shrink:0;width:52px;padding:12px 0;text-align:center;">
+                        <span style="font-size:22px;font-weight:900;color:${CONFIG.accent};opacity:${opacity};line-height:1;">${String(i + 1).padStart(2, '0')}</span>
+                    </section>
+                    <section style="flex:1;padding:10px 14px;border-left:1px solid ${CONFIG.borderColor};">
+                        <p style="margin:0;font-size:14px;font-weight:700;color:${CONFIG.titleColor};">${title || ''}</p>
+                        ${sub ? `<p style="margin:3px 0 0;font-size:12px;color:${CONFIG.subtitleColor};">${sub}</p>` : ''}
+                    </section>
+                </section>`;
+            }).join('');
+            return `<section style="margin:16px 0;border:1px solid ${CONFIG.borderColor};border-radius:10px;overflow:hidden;">
+                <section style="padding:10px 16px;background:${CONFIG.accent}18;border-bottom:1px solid ${CONFIG.borderColor};">
+                    <span style="font-size:12px;font-weight:700;color:${CONFIG.accent};letter-spacing:2px;">OVERVIEW · ${count} STEPS</span>
+                </section>
+                ${stepsHtml}
+            </section>`;
+        }
+
+        return '';
     }
 
-    function renderDocument(md) {
+    function renderDocument(md, styleOverrides) {
         let { fm, body } = parseFrontMatter(md);
+        styleOverrides = styleOverrides || {};
         if (fm && Object.keys(fm).length > 0) {
-            return renderFrontMatterHeader(fm) + renderMarkdown(body);
+            let merged = { ...fm };
+            if (styleOverrides.hstyle != null && styleOverrides.hstyle !== '') merged.hstyle = styleOverrides.hstyle;
+            if (styleOverrides.sstyle != null && styleOverrides.sstyle !== '') merged.sstyle = styleOverrides.sstyle;
+            return renderFrontMatterHeader(merged) + renderMarkdown(body);
         }
         return renderMarkdown(md);
+    }
+
+    function getPreviewStyleOverrides() {
+        let h = document.getElementById('preview-hstyle');
+        let s = document.getElementById('preview-sstyle');
+        let out = {};
+        if (h && h.value) out.hstyle = h.value;
+        if (s && s.value) out.sstyle = s.value;
+        return out;
     }
 
     /* ================================================================
@@ -1130,10 +1479,11 @@
     }
 
     function renderImages(images) {
+        let borderColor = CONFIG.borderColor || '#333';
         if (images.length === 0) return '';
         if (images.length === 1) {
             let img = images[0];
-            let html = `<section style="margin:16px 0;">
+            let html = `<section style="margin:16px 0;padding:10px;border:1px solid ${borderColor};border-radius:12px;background:${CONFIG.cardBg || 'transparent'};">
                 <img src="${img.src}" alt="${img.alt}" style="width:100%;border-radius:8px;display:block;" />`;
             if (img.alt || img.caption) {
                 html += `<p style="margin:8px 0 0 0;font-size:13px;color:${CONFIG.subtitleColor};text-align:center;line-height:1.5;">${img.caption || img.alt}</p>`;
@@ -1142,11 +1492,13 @@
             return html;
         }
 
-        // Multi-image grid
+        // Multi-image grid（每张图片带外框）
         let cols = images.length <= 2 ? 2 : (images.length <= 4 ? 2 : 3);
-        let gap = 8;
+        let gap = 10;
         let imgHtml = images.map(img =>
-            `<img src="${img.src}" alt="${img.alt}" style="width:100%;height:100%;object-fit:cover;border-radius:6px;display:block;" />`
+            `<section style="padding:8px;border:1px solid ${borderColor};border-radius:10px;background:${CONFIG.cardBg || 'transparent'};overflow:hidden;">
+                <img src="${img.src}" alt="${img.alt}" style="width:100%;height:100%;object-fit:cover;border-radius:6px;display:block;" />
+            </section>`
         ).join('');
 
         return `<section style="margin:16px 0;display:grid;grid-template-columns:repeat(${cols},1fr);gap:${gap}px;">
@@ -1263,10 +1615,13 @@
                     ${innerHtml}
                 </section>`;
             }
+            let borderColor = CONFIG.borderColor || '#333';
             let imgHtml = imgs.map(img =>
-                `<img src="${img.src}" alt="${img.alt}" style="width:100%;border-radius:6px;display:block;" />`
+                `<section style="padding:8px;border:1px solid ${borderColor};border-radius:10px;background:${CONFIG.cardBg || 'transparent'};overflow:hidden;">
+                    <img src="${img.src}" alt="${img.alt}" style="width:100%;border-radius:6px;display:block;" />
+                </section>`
             ).join('');
-            return `<section style="margin:16px 0;display:grid;grid-template-columns:repeat(${cols},1fr);gap:8px;">
+            return `<section style="margin:16px 0;display:grid;grid-template-columns:repeat(${cols},1fr);gap:10px;">
                 ${imgHtml}
             </section>`;
         }
@@ -1283,14 +1638,90 @@
 
         // Summary block
         if (type === 'summary') {
-            let innerHtml = renderMarkdown(content);
+            let paras = content.split(/\n\n+/).map(p => p.trim()).filter(Boolean);
+            let paraHtml = (textColor) => paras.map((p, i) => {
+                let mb = i < paras.length - 1 ? '1.2em' : '0';
+                return `<p style="margin:0 0 ${mb} 0;font-size:${CONFIG.fontSize}px;line-height:${CONFIG.lineHeight};color:${textColor};">${inlineFormat(p.replace(/\n/g, ' '))}</p>`;
+            }).join('');
+
+            if (CONFIG.summaryBg) {
+                let sbg = CONFIG.summaryBg;
+                let sborder = CONFIG.summaryBorder || '#fcd34d';
+                let stitleColor = CONFIG.summaryTitleColor || CONFIG.titleColor;
+                return `<section style="margin:0 0 28px 0;padding:22px 26px 20px;background:${sbg};border:1.5px solid ${sborder};border-radius:10px;border-left:5px solid ${sborder};">
+                    <section style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
+                        <span style="font-size:18px;">📝</span>
+                        <span style="font-size:15px;font-weight:700;color:${stitleColor};letter-spacing:1px;">本文摘要</span>
+                    </section>
+                    ${paraHtml(CONFIG.textColor)}
+                </section>`;
+            }
             return `<section style="margin:24px 0;padding:24px;background:linear-gradient(135deg,${CONFIG.accent}15,${CONFIG.accent}08);border:1px solid ${CONFIG.accent}30;border-radius:12px;">
                 <section style="display:flex;align-items:center;gap:8px;margin-bottom:16px;">
                     <span style="font-size:16px;">📋</span>
                     <span style="font-size:16px;font-weight:700;color:${CONFIG.accent};">总结</span>
                 </section>
-                ${innerHtml}
+                ${paraHtml(CONFIG.textColor)}
             </section>`;
+        }
+
+        // ── Digest block ──────────────────────────────────────────────
+        // 卡片式：灰底卡片 + 虚线分隔段落 + "✦ 阅前须知" 标题
+        if (type === 'digest') {
+            let paras = content.split(/\n\n+/).map(p => p.trim()).filter(Boolean);
+            let paraRows = paras.map((p, i) => {
+                let txt = inlineFormat(p.replace(/\n/g, ' '));
+                let sep = i < paras.length - 1
+                    ? `<section style="border-top:1px dashed ${CONFIG.borderColor};margin:14px 0;"></section>`
+                    : '';
+                return `<section style="font-size:${CONFIG.fontSize}px;line-height:${CONFIG.lineHeight};color:${CONFIG.textColor};">${txt}</section>${sep}`;
+            }).join('');
+            return `<section style="margin:0 0 28px 0;padding:20px 24px;background:${CONFIG.cardBg};border-radius:8px;border:1px solid ${CONFIG.borderColor};">
+                <section style="display:flex;align-items:center;gap:8px;margin-bottom:16px;padding-bottom:10px;border-bottom:1.5px solid ${CONFIG.accent}50;">
+                    <span style="font-size:13px;font-weight:700;color:${CONFIG.accent};letter-spacing:2px;">✦ 阅前须知</span>
+                </section>
+                ${paraRows}
+            </section>`;
+        }
+
+        // ── Numbered block ─────────────────────────────────────────────
+        // 数字徽章式：每段前有圆形序号，无外框
+        if (type === 'numbered') {
+            let paras = content.split(/\n\n+/).map(p => p.trim()).filter(Boolean);
+            let isDark = CONFIG.bg === '#111111' || CONFIG.bg === '#111' || CONFIG.bg === '#0a0a0c';
+            let badgeText = isDark ? '#0a0a0c' : '#ffffff';
+            let paraRows = paras.map((p, i) => {
+                let txt = inlineFormat(p.replace(/\n/g, ' '));
+                let mb = i < paras.length - 1 ? '18px' : '0';
+                return `<section style="display:flex;align-items:flex-start;gap:14px;margin-bottom:${mb};">
+                    <span style="flex-shrink:0;width:22px;height:22px;border-radius:50%;background:${CONFIG.accent};color:${badgeText};font-size:12px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;margin-top:3px;">${i + 1}</span>
+                    <span style="flex:1;font-size:${CONFIG.fontSize}px;line-height:${CONFIG.lineHeight};color:${CONFIG.textColor};">${txt}</span>
+                </section>`;
+            }).join('');
+            return `<section style="margin:0 0 28px 0;padding:22px 24px;background:${CONFIG.cardBg};border-radius:10px;border:1px solid ${CONFIG.borderColor};">
+                ${paraRows}
+            </section>`;
+        }
+
+        // ── Intro block ────────────────────────────────────────────────
+        // 侧边线式：无外框，每段左侧一条主题色竖线
+        if (type === 'intro') {
+            let paras = content.split(/\n\n+/).map(p => p.trim()).filter(Boolean);
+            let paraRows = paras.map((p, i) => {
+                let txt = inlineFormat(p.replace(/\n/g, ' '));
+                let mb = i < paras.length - 1 ? '14px' : '0';
+                return `<section style="padding:3px 0 3px 14px;border-left:3px solid ${CONFIG.accent};margin-bottom:${mb};">
+                    <span style="font-size:${CONFIG.fontSize}px;line-height:${CONFIG.lineHeight};color:${CONFIG.textColor};">${txt}</span>
+                </section>`;
+            }).join('');
+            return `<section style="margin:0 0 28px 0;">${paraRows}</section>`;
+        }
+
+        // 尾图块：存储尾图 src，由 updatePreview 渲染到页脚之后
+        if (type === 'tail') {
+            let m = content.trim().match(/!\[([^\]]*)\]\(([^)]+)\)/);
+            if (m) { window.__tailImgSrc = m[2]; window.__tailImgAlt = m[1]; }
+            return ''; // 不在正文输出，由页脚后追加
         }
 
         // Checklist / Terminal block (macOS window style)
@@ -1314,6 +1745,182 @@
             </section>`;
         }
 
+        // ── Quote A (经典引用): 大号开引号 + 正文 + 来源行 ──────────────────
+        if (type === 'quote' || type === 'quote-a') {
+            let paras = content.split(/\n\n+/).map(p => p.trim()).filter(Boolean);
+            let source = paras.length > 1 ? paras.pop() : '';
+            let bodyHtml = paras.map(p =>
+                `<p style="margin:0 0 10px 0;font-size:${CONFIG.fontSize}px;line-height:${CONFIG.lineHeight};color:${CONFIG.textColor};">${inlineFormat(p)}</p>`
+            ).join('');
+            let sourceHtml = source
+                ? `<p style="margin:12px 0 0 0;font-size:13px;color:${CONFIG.subtitleColor};text-align:right;">— ${inlineFormat(source)}</p>`
+                : '';
+            return `<section style="margin:20px 0;padding:24px 28px;border-left:4px solid ${CONFIG.accent};background:${CONFIG.cardBg};border-radius:0 10px 10px 0;position:relative;overflow:hidden;">
+                <span style="position:absolute;top:-8px;left:14px;font-size:72px;line-height:1;color:${CONFIG.accent};opacity:0.18;font-family:Georgia,serif;">"</span>
+                <section style="position:relative;z-index:1;">
+                    ${bodyHtml}${sourceHtml}
+                </section>
+            </section>`;
+        }
+
+        // ── Quote B (卡片引用): 渐变背景 + 上下彩线 ─────────────────────────
+        if (type === 'quote-b') {
+            let paras = content.split(/\n\n+/).map(p => p.trim()).filter(Boolean);
+            let source = paras.length > 1 ? paras.pop() : '';
+            let bodyHtml = paras.map(p =>
+                `<p style="margin:0 0 10px 0;font-size:${CONFIG.fontSize}px;line-height:${CONFIG.lineHeight};color:${CONFIG.textColor};font-style:italic;">${inlineFormat(p)}</p>`
+            ).join('');
+            let sourceHtml = source
+                ? `<p style="margin:14px 0 0 0;font-size:12px;color:${CONFIG.accent};font-weight:700;letter-spacing:1px;text-transform:uppercase;">— ${inlineFormat(source)}</p>`
+                : '';
+            return `<section style="margin:20px 0;padding:22px 26px;background:linear-gradient(135deg,${CONFIG.accent}10,${CONFIG.accent}05);border:1px solid ${CONFIG.accent}30;border-radius:12px;">
+                <section style="height:2px;background:${CONFIG.accent};border-radius:1px;margin-bottom:20px;"></section>
+                ${bodyHtml}${sourceHtml}
+                <section style="height:2px;background:${CONFIG.accent}50;border-radius:1px;margin-top:16px;"></section>
+            </section>`;
+        }
+
+        // ── Quote C (气泡引用): 对话气泡风格 + 头像占位 ─────────────────────
+        if (type === 'quote-c') {
+            let paras = content.split(/\n\n+/).map(p => p.trim()).filter(Boolean);
+            let source = paras.length > 1 ? paras.pop() : '';
+            let initials = source ? source.replace(/[^a-zA-Z\u4e00-\u9fa5]/g, '').slice(0, 1) : '✦';
+            let bodyHtml = paras.map(p =>
+                `<p style="margin:0 0 8px 0;font-size:${CONFIG.fontSize}px;line-height:${CONFIG.lineHeight};color:${CONFIG.textColor};">${inlineFormat(p)}</p>`
+            ).join('');
+            let sourceHtml = source
+                ? `<p style="margin:10px 0 0 0;font-size:13px;color:${CONFIG.subtitleColor};">${inlineFormat(source)}</p>`
+                : '';
+            return `<section style="margin:20px 0;display:flex;align-items:flex-start;gap:14px;">
+                <section style="flex-shrink:0;width:40px;height:40px;border-radius:50%;background:${CONFIG.accent};display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:#fff;margin-top:4px;">${initials}</section>
+                <section style="flex:1;padding:18px 20px;background:${CONFIG.cardBg};border:1px solid ${CONFIG.borderColor};border-radius:4px 14px 14px 14px;">
+                    ${bodyHtml}${sourceHtml}
+                </section>
+            </section>`;
+        }
+
+        // ── Flow (竖排流程): 连线 + 序号圆 + 标题/说明 ──────────────────────
+        if (type === 'flow') {
+            let blocks = content.split(/\n\n+/).map(p => p.trim()).filter(Boolean);
+            let stepsHtml = blocks.map((block, i) => {
+                let lines2 = block.split('\n');
+                let title = lines2[0].replace(/^#+\s*/, '').trim();
+                let desc = lines2.slice(1).map(l => l.trim()).filter(Boolean).join(' ');
+                let isLast = i === blocks.length - 1;
+                let numBg = i === 0 ? CONFIG.accent : `${CONFIG.accent}20`;
+                let numColor = i === 0 ? '#fff' : CONFIG.accent;
+                return `<section style="display:flex;align-items:stretch;gap:0;min-height:72px;">
+                    <section style="flex-shrink:0;display:flex;flex-direction:column;align-items:center;width:36px;">
+                        <section style="width:32px;height:32px;border-radius:50%;background:${numBg};border:2px solid ${CONFIG.accent};display:flex;align-items:center;justify-content:center;flex-shrink:0;z-index:1;">
+                            <span style="font-size:13px;font-weight:800;color:${numColor};">${i + 1}</span>
+                        </section>
+                        ${!isLast ? `<section style="flex:1;width:2px;background:linear-gradient(to bottom,${CONFIG.accent}80,${CONFIG.accent}20);margin:4px auto 0;"></section>` : ''}
+                    </section>
+                    <section style="flex:1;padding:4px 0 ${isLast ? '0' : '28px'} 16px;">
+                        <p style="margin:0 0 4px 0;font-size:15px;font-weight:700;color:${CONFIG.titleColor};line-height:1.4;">${inlineFormat(title)}</p>
+                        ${desc ? `<p style="margin:0;font-size:14px;color:${CONFIG.subtitleColor};line-height:1.6;">${inlineFormat(desc)}</p>` : ''}
+                    </section>
+                </section>`;
+            }).join('');
+            return `<section style="margin:20px 0;padding:20px 0;">${stepsHtml}</section>`;
+        }
+
+        // ── Stat (数据卡片): 大数字 + 标签 + 多列网格 ───────────────────────
+        if (type === 'stat') {
+            let items = content.split(/\n/).map(l => l.trim()).filter(Boolean);
+            let cardsHtml = items.map(item => {
+                let parts = item.split('|').map(s => s.trim());
+                let num = parts[0] || '';
+                let label = parts[1] || '';
+                let sub = parts[2] || '';
+                return `<section style="flex:1;min-width:90px;text-align:center;padding:16px 12px;background:${CONFIG.cardBg};border:1px solid ${CONFIG.borderColor};border-radius:10px;">
+                    <p style="margin:0 0 4px 0;font-size:28px;font-weight:800;color:${CONFIG.accent};line-height:1;">${num}</p>
+                    <p style="margin:0 0 2px 0;font-size:13px;font-weight:600;color:${CONFIG.titleColor};">${label}</p>
+                    ${sub ? `<p style="margin:0;font-size:11px;color:${CONFIG.subtitleColor};">${sub}</p>` : ''}
+                </section>`;
+            }).join('');
+            return `<section style="margin:20px 0;display:flex;flex-wrap:wrap;gap:10px;">${cardsHtml}</section>`;
+        }
+
+        // ── Compare (对比块): 左/右两列对比 ─────────────────────────────────
+        if (type === 'compare') {
+            let sections = content.split(/\n---\n/).map(s => s.trim());
+            let left = sections[0] || '';
+            let right = sections[1] || '';
+            let parseCol = (raw) => {
+                let ls = raw.split('\n');
+                let title = ls[0].replace(/^#+\s*/, '').trim();
+                let items = ls.slice(1).filter(l => /^[-✗✓×✕✔]/.test(l.trim())).map(l => {
+                    let t = l.trim();
+                    let isGood = /^[-✓✔]/.test(t);
+                    let txt = t.replace(/^[-✓✔✗×✕]\s*/, '');
+                    return { txt, isGood };
+                });
+                return { title, items };
+            };
+            let lc = parseCol(left), rc = parseCol(right);
+            let renderCol = (col, isLeft) => {
+                let hdrBg = isLeft ? `${CONFIG.accent}20` : `#ef444420`;
+                let hdrColor = isLeft ? CONFIG.accent : '#ef4444';
+                let dotHtml = col.items.map(it =>
+                    `<section style="display:flex;align-items:flex-start;gap:8px;margin-bottom:8px;">
+                        <span style="flex-shrink:0;margin-top:3px;font-size:14px;">${it.isGood ? '✓' : '✗'}</span>
+                        <span style="font-size:13px;color:${CONFIG.textColor};line-height:1.5;">${inlineFormat(it.txt)}</span>
+                    </section>`
+                ).join('');
+                return `<section style="flex:1;border:1px solid ${CONFIG.borderColor};border-radius:10px;overflow:hidden;">
+                    <section style="padding:10px 16px;background:${hdrBg};">
+                        <p style="margin:0;font-size:14px;font-weight:700;color:${hdrColor};">${col.title}</p>
+                    </section>
+                    <section style="padding:14px 16px;">${dotHtml}</section>
+                </section>`;
+            };
+            return `<section style="margin:20px 0;display:flex;gap:12px;">${renderCol(lc,true)}${renderCol(rc,false)}</section>`;
+        }
+
+        // ── Callout (醒目强调块): 带图标 + 渐变背景 ─────────────────────────
+        if (type === 'callout') {
+            let emoji = (meta || '💡').trim();
+            let paras = content.split(/\n\n+/).map(p => p.trim()).filter(Boolean);
+            let bodyHtml = paras.map(p =>
+                `<p style="margin:0 0 8px 0;font-size:${CONFIG.fontSize}px;line-height:${CONFIG.lineHeight};color:${CONFIG.textColor};">${inlineFormat(p)}</p>`
+            ).join('');
+            return `<section style="margin:20px 0;padding:18px 22px;background:linear-gradient(135deg,${CONFIG.accent}18,${CONFIG.accent}06);border:1px solid ${CONFIG.accent}50;border-radius:12px;display:flex;align-items:flex-start;gap:14px;">
+                <span style="font-size:26px;flex-shrink:0;margin-top:2px;">${emoji}</span>
+                <section style="flex:1;">${bodyHtml}</section>
+            </section>`;
+        }
+
+        // ── Highlight (高亮文字块): 带色条 + 大字展示 ───────────────────────
+        if (type === 'highlight') {
+            let text = content.trim();
+            return `<section style="margin:24px 0;padding:24px;background:${CONFIG.accent}12;border-radius:12px;text-align:center;position:relative;overflow:hidden;">
+                <section style="position:absolute;top:0;left:0;width:6px;height:100%;background:${CONFIG.accent};border-radius:4px 0 0 4px;"></section>
+                <section style="position:absolute;top:0;right:0;width:6px;height:100%;background:${CONFIG.accent}40;border-radius:0 4px 4px 0;"></section>
+                <p style="margin:0;font-size:${CONFIG.fontSize + 4}px;font-weight:700;line-height:1.6;color:${CONFIG.titleColor};">${inlineFormat(text)}</p>
+            </section>`;
+        }
+
+        // ── Divider (装饰分割线): 多种样式 meta=A/B/C ────────────────────────
+        if (type === 'divider') {
+            let style2 = (meta || 'A').trim().toUpperCase();
+            if (style2 === 'B') {
+                return `<section style="margin:32px 0;display:flex;align-items:center;gap:12px;">
+                    <section style="flex:1;height:1px;background:${CONFIG.borderColor};"></section>
+                    <span style="font-size:18px;color:${CONFIG.accent};">✦</span>
+                    <section style="flex:1;height:1px;background:${CONFIG.borderColor};"></section>
+                </section>`;
+            }
+            if (style2 === 'C') {
+                return `<section style="margin:32px 0;text-align:center;">
+                    <span style="display:inline-block;width:6px;height:6px;background:${CONFIG.accent};border-radius:50%;margin:0 6px;"></span>
+                    <span style="display:inline-block;width:10px;height:10px;background:${CONFIG.accent};border-radius:50%;margin:0 6px;"></span>
+                    <span style="display:inline-block;width:6px;height:6px;background:${CONFIG.accent};border-radius:50%;margin:0 6px;"></span>
+                </section>`;
+            }
+            return `<section style="margin:32px auto;width:50%;height:2px;background:linear-gradient(to right,transparent,${CONFIG.accent},transparent);border-radius:1px;"></section>`;
+        }
+
         // Fallback
         return `<section style="margin:16px 0;">${renderMarkdown(content)}</section>`;
     }
@@ -1327,9 +1934,18 @@
         let borderC = CONFIG.borderColor;
         let textC = CONFIG.subtitleColor;
         let accentC = CONFIG.accent;
-        let svgLike = '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>';
-        let svgEye = '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
-        let svgShare = '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>';
+        let svgLike = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>';
+        let svgHeart = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>';
+        let svgShare = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>';
+
+        // 尾图（在页脚之后）
+        let tailHtml = '';
+        if (window.__tailImgSrc) {
+            tailHtml = `<section style="margin:24px 0 0 0;padding:10px;border:1px solid ${borderC};border-radius:12px;background:${CONFIG.cardBg};">
+                <img src="${window.__tailImgSrc}" alt="${window.__tailImgAlt || ''}" style="width:100%;display:block;border-radius:8px;" />
+            </section>`;
+        }
+
         return `<section style="margin:32px 0 0 0;padding:24px 20px;border:1px solid ${borderC};border-radius:12px;text-align:center;background:${CONFIG.cardBg};">
             <p style="margin:0 0 6px 0;font-size:14px;color:${textC};">觉得有用请帮我点个赞吧 👍</p>
             <p style="margin:0 0 20px 0;font-size:13px;color:${textC};opacity:0.9;">点击领取奖励</p>
@@ -1339,8 +1955,8 @@
                     <span style="font-size:13px;color:${textC};">点赞</span>
                 </section>
                 <section style="display:flex;flex-direction:column;align-items:center;gap:6px;">
-                    <span style="width:48px;height:48px;border-radius:10px;border:1px solid ${borderC};display:flex;align-items:center;justify-content:center;color:${textC};">${svgEye}</span>
-                    <span style="font-size:13px;color:${textC};">在看</span>
+                    <span style="width:48px;height:48px;border-radius:10px;border:1px solid #e879f960;background:#e879f912;display:flex;align-items:center;justify-content:center;color:#e879f9;">${svgHeart}</span>
+                    <span style="font-size:13px;color:#e879f9;">在看</span>
                 </section>
                 <section style="display:flex;flex-direction:column;align-items:center;gap:6px;">
                     <span style="width:48px;height:48px;border-radius:10px;background:${accentC}22;border:1px solid ${accentC}66;display:flex;align-items:center;justify-content:center;color:${accentC};">${svgShare}</span>
@@ -1348,7 +1964,7 @@
                 </section>
             </section>
             <p style="margin:0;font-size:12px;color:${textC};letter-spacing:0.2em;">THANKS FOR READING</p>
-        </section>`;
+        </section>${tailHtml}`;
     }
 
     /* ================================================================
@@ -1356,7 +1972,9 @@
     ================================================================ */
     function updatePreview() {
         let md = document.getElementById('markdown-input').value;
-        let html = renderDocument(md);
+        let overrides = getPreviewStyleOverrides();
+        window.__tailImgSrc = ''; window.__tailImgAlt = '';
+        let html = renderDocument(md, overrides);
         if (showFixedFooter) html += renderFixedFooter();
         let container = document.getElementById('article-body');
         container.style.background = CONFIG.bg;
@@ -1372,7 +1990,9 @@
     ================================================================ */
     function copyForWeChat() {
         let md = document.getElementById('markdown-input').value;
-        let html = renderDocument(md);
+        let overrides = getPreviewStyleOverrides();
+        window.__tailImgSrc = ''; window.__tailImgAlt = '';
+        let html = renderDocument(md, overrides);
         if (showFixedFooter) html += renderFixedFooter();
 
         // Wrap in article container with background
@@ -1779,6 +2399,8 @@ steps: "品牌方向|先定调再出图, IP 形象|20 张批量生成, 故事分
 
 > [!tip] 推荐使用中英混合 Prompt：先用中文描述画面，再用英文补充细节关键词
 
+![需求对比示意](微信图片_20241207174154.jpg)
+
 ### 推荐 Prompt 结构
 
 1. 主体描述（产品 + 场景）
@@ -1805,6 +2427,8 @@ Nano Banana 2 的批量功能非常强大：
 
 > [!warning] 注意：批量生成时建议分批次进行，每批不超过 20 张，确保质量稳定
 
+![意境图](微信图片_20240525202929.png)
+
 :::summary
 **本节要点：**
 
@@ -1828,6 +2452,83 @@ Nano Banana 2 的批量功能非常强大：
 
 :::info
 所有导出格式均支持一键批量处理，无需逐张设置。
+:::
+
+---
+
+## 05 组件样式展示
+
+:::stat
+3x | 速度提升 | 比上代
+50% | 成本降低 | 外包对比
+4h | 完成全案 | 从0到1
+98% | 客户满意 | 实测数据
+:::
+
+:::callout 🚀
+核心结论：用 AI 做电商全案，不只是省时间，更是一次创作方式的根本升级。从"输出执行"变成"定义风格"，这才是 AI 工具真正的价值所在。
+:::
+
+:::quote-a
+每一张图片背后都是一套方法论，而不是一个偶然的灵感。
+
+持续输出的人，靠的不是运气，靠的是可复制的系统。
+产品大峡谷
+:::
+
+:::quote-b
+生成速度快了三倍，但真正的变化不是速度——而是你开始敢于迭代了。
+
+当试错成本趋近于零，创意就不再是奢侈品。
+Nano Banana 2 官方白皮书
+:::
+
+:::quote-c
+我以为 AI 只是工具，用完才发现，它改变了我思考产品的方式。
+
+AI 让我从"能不能做"变成了"要不要做"。
+产品大峡谷读者反馈
+:::
+
+:::highlight
+AI 不是替代你，而是让你变成更好的自己。
+:::
+
+:::compare
+## ✓ 用 AI 做品牌
+✓ 3小时完成全套视觉
+✓ 风格高度一致
+✓ 修改零成本、随时迭代
+✓ 一人顶一个设计团队
+---
+## ✗ 传统外包方式
+✗ 周期2-4周才出稿
+✗ 多人协作风格漂移
+✗ 每次修改都要重新沟通
+✗ 成本高且不可控
+:::
+
+:::flow
+准备品牌资料
+收集 Logo、品牌色、参考图，建立素材库
+
+生成主视觉
+用中英混合 Prompt，定好风格基调
+
+批量衍生
+基于主视觉批量出图，覆盖所有场景
+
+精修导出
+微调细节，按平台规格一键批量导出
+
+复盘迭代
+整理方法论，建立可复用的 Prompt 模板库
+:::
+
+:::divider B:::
+
+:::tail
+![尾图](尾图.png)
 :::`;
 
         document.getElementById('markdown-input').value = example;
@@ -1943,6 +2644,7 @@ Nano Banana 2 的批量功能非常强大：
 
     // Load example on start
     loadExample();
+    syncPreviewThemeFromToolbar();
     </script>
 </body>
 </html>
