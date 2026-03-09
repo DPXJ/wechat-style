@@ -455,6 +455,192 @@
             z-index: 100;
         }
         .help-overlay.active { display: flex; align-items: center; justify-content: center; }
+
+        /* ========== COMPONENT PALETTE ========== */
+        .comp-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.65);
+            z-index: 200;
+            backdrop-filter: blur(4px);
+        }
+        .comp-overlay.active { display: flex; align-items: flex-start; justify-content: center; padding-top: 60px; }
+        .comp-modal {
+            background: #16161a;
+            border: 1px solid #2a2a2e;
+            border-radius: 18px;
+            padding: 28px 32px 32px;
+            width: 780px;
+            max-height: 82vh;
+            overflow-y: auto;
+            box-shadow: 0 24px 64px rgba(0,0,0,0.6);
+        }
+        .comp-modal h3 {
+            font-size: 17px;
+            color: #fff;
+            margin: 0 0 6px 0;
+            font-weight: 700;
+        }
+        .comp-modal .comp-subtitle {
+            font-size: 12px;
+            color: #555;
+            margin: 0 0 22px 0;
+        }
+        .comp-modal::-webkit-scrollbar { width: 6px; }
+        .comp-modal::-webkit-scrollbar-thumb { background: #2a2a2e; border-radius: 3px; }
+        .comp-category-title {
+            font-size: 11px;
+            color: #555;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            margin: 20px 0 10px 0;
+            padding-bottom: 6px;
+            border-bottom: 1px solid #222;
+        }
+        .comp-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 6px;
+        }
+        .comp-card {
+            padding: 14px 16px;
+            background: #1e1e24;
+            border: 1px solid #2a2a2e;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.15s;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+        }
+        .comp-card:hover {
+            border-color: #2dd4a8;
+            background: #1e2d2a;
+            transform: translateY(-1px);
+        }
+        .comp-card-icon {
+            font-size: 20px;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+        .comp-card-info { flex: 1; }
+        .comp-card-name {
+            font-size: 13px;
+            font-weight: 700;
+            color: #ddd;
+            margin-bottom: 3px;
+        }
+        .comp-card-desc {
+            font-size: 11px;
+            color: #666;
+            line-height: 1.5;
+        }
+        .comp-close {
+            display: block;
+            margin: 22px auto 0;
+            padding: 8px 28px;
+            border: none;
+            border-radius: 8px;
+            background: #2a2a2e;
+            color: #aaa;
+            font-size: 13px;
+            cursor: pointer;
+        }
+        .comp-close:hover { background: #333; color: #ddd; }
+
+        /* ========== SELECTION FLOAT TOOLBAR ========== */
+        #sel-toolbar {
+            display: none;
+            position: fixed;
+            z-index: 300;
+            background: #1a1a1e;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 5px 8px;
+            gap: 4px;
+            align-items: center;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+            flex-wrap: wrap;
+            max-width: 340px;
+        }
+        #sel-toolbar.show { display: flex; }
+        .sel-btn {
+            padding: 4px 9px;
+            font-size: 11px;
+            background: #25252a;
+            border: 1px solid #333;
+            border-radius: 5px;
+            color: #bbb;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.12s;
+        }
+        .sel-btn:hover {
+            background: #2dd4a820;
+            border-color: #2dd4a8;
+            color: #2dd4a8;
+        }
+        .sel-label {
+            font-size: 10px;
+            color: #555;
+            margin-right: 3px;
+            white-space: nowrap;
+        }
+
+        /* ========== AI COMMAND BAR ========== */
+        .ai-cmd-bar {
+            display: none;
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 300;
+            background: #1a1a1e;
+            border: 1px solid #2dd4a860;
+            border-radius: 14px;
+            padding: 10px 14px;
+            gap: 8px;
+            align-items: center;
+            box-shadow: 0 12px 40px rgba(0,0,0,0.6);
+            width: 560px;
+            max-width: 94vw;
+        }
+        .ai-cmd-bar.show { display: flex; }
+        .ai-cmd-input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: #eee;
+            font-size: 14px;
+            font-family: inherit;
+        }
+        .ai-cmd-input::placeholder { color: #555; }
+        .ai-cmd-btn {
+            padding: 6px 16px;
+            background: #2dd4a8;
+            border: none;
+            border-radius: 8px;
+            color: #0a0a0c;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .ai-cmd-btn:hover { background: #26bfa0; }
+        .ai-cmd-close {
+            background: transparent;
+            border: none;
+            color: #555;
+            font-size: 18px;
+            cursor: pointer;
+            padding: 0 2px;
+        }
+        .ai-cmd-close:hover { color: #aaa; }
+
         .help-modal {
             background: #1a1a1e;
             border: 1px solid #2a2a2e;
@@ -528,6 +714,7 @@
             <button class="toolbar-btn" onclick="openHelp()">语法</button>
             <button class="toolbar-btn" onclick="openSettings()">设置</button>
             <button class="toolbar-btn" onclick="openAISettings()" title="配置 AI API">AI 设置</button>
+            <button class="toolbar-btn" onclick="openOSSSettings()" title="配置阿里云 OSS 图片上传">OSS 图片</button>
         </div>
         <div class="toolbar-right">
             <button class="btn-outline" onclick="copySource()">复制源码</button>
@@ -544,6 +731,9 @@
                 <span style="font-size:12px;color:#444;" id="char-count">0 字</span>
             </div>
             <div class="format-bar">
+                <button class="fmt-btn" id="btn-undo" title="撤销 (Ctrl+Z)" onclick="editorUndo()" style="font-size:15px;opacity:0.4;" disabled>↩</button>
+                <button class="fmt-btn" id="btn-redo" title="重做 (Ctrl+Y)" onclick="editorRedo()" style="font-size:15px;opacity:0.4;" disabled>↪</button>
+                <div class="fmt-sep"></div>
                 <button class="fmt-btn" title="标题" onclick="insertFormat('heading')"><b>H</b></button>
                 <button class="fmt-btn" title="粗体" onclick="insertFormat('bold')"><b>B</b></button>
                 <button class="fmt-btn" title="斜体" onclick="insertFormat('italic')"><i>I</i></button>
@@ -558,6 +748,9 @@
                 <button class="fmt-btn" title="3列网格" onclick="insertFormat('grid3')" style="font-size:11px;">⊟</button>
                 <div class="fmt-sep"></div>
                 <button class="fmt-btn" title="分割线" onclick="insertFormat('hr')">—</button>
+                <div class="fmt-sep"></div>
+                <button class="fmt-btn" title="打开组件面板" onclick="openCompPanel()" style="font-size:16px;color:#2dd4a8;font-weight:700;">⊕</button>
+                <button class="fmt-btn" title="AI 组件助手 (快捷键 Alt+A)" onclick="toggleAICmd()" style="font-size:11px;color:#2dd4a8;font-weight:700;">AI</button>
             </div>
             <div class="editor-area">
                 <textarea id="markdown-input" placeholder="在这里输入 Markdown 内容...&#10;&#10;支持的特殊语法：&#10;  ## 01 章节标题&#10;  :::info  信息栏  :::&#10;  :::tip  提示框  :::&#10;  {tags: 标签1, 标签2}&#10;  ==高亮文本==&#10;  :::grid-2  图片网格  :::"></textarea>
@@ -571,12 +764,16 @@
         <div class="preview-panel" id="preview-panel">
             <div class="panel-header">
                 <span class="panel-title">Preview</span>
-                <span style="font-size:12px;color:#444;">微信公众号预览</span>
+                <span style="display:flex;align-items:center;gap:8px;">
+                    <button id="btn-sync-scroll" onclick="toggleSyncScroll()" title="同步滚动" style="background:#2dd4a820;border:1px solid #2dd4a840;color:#2dd4a8;font-size:11px;padding:3px 9px;border-radius:5px;cursor:pointer;font-family:inherit;font-weight:600;transition:all 0.15s;">⇅ 同步</button>
+                    <span style="font-size:12px;color:#444;">微信公众号预览</span>
+                </span>
             </div>
             <div class="style-preview-bar" id="style-preview-bar">
                 <span class="style-preview-label">模板预览中心</span>
                 <label>主题</label>
-                <select id="preview-theme" class="style-preview-select" title="主题（与左上角同步）" onchange="document.getElementById('template-select').value=this.value;applyTemplate(this.value);updatePreview();">
+                <button onclick="cycleTheme(-1)" title="上一个主题 (Ctrl+←)" style="padding:2px 7px;background:#2a2a2e;border:1px solid #333;border-radius:4px;color:#aaa;cursor:pointer;font-size:12px;line-height:1;">‹</button>
+                <select id="preview-theme" class="style-preview-select" title="主题（与左上角同步，Ctrl+← / Ctrl+→ 快速切换）" onchange="document.getElementById('template-select').value=this.value;applyTemplate(this.value);updatePreview();">
                     <option value="dark-teal">深色科技</option>
                     <option value="dark-orange">深色暖橙</option>
                     <option value="light-minimal">浅色极简</option>
@@ -585,6 +782,7 @@
                     <option value="jingge">镜哥风格</option>
                     <option value="jingge2">镜哥草稿</option>
                 </select>
+                <button onclick="cycleTheme(1)" title="下一个主题 (Ctrl+→)" style="padding:2px 7px;background:#2a2a2e;border:1px solid #333;border-radius:4px;color:#aaa;cursor:pointer;font-size:12px;line-height:1;">›</button>
                 <label>头部</label>
                 <select id="preview-hstyle" class="style-preview-select" title="头部风格（可覆盖正文中的 hstyle）" onchange="updatePreview()">
                     <option value="">跟随正文</option>
@@ -626,7 +824,7 @@
             <div class="setting-group">
                 <label>正文字号 (px)</label>
                 <div class="setting-row">
-                    <input type="range" id="s-fontsize" min="14" max="20" value="16" onchange="updateSetting()">
+                    <input type="range" id="s-fontsize" min="11" max="22" value="16" onchange="updateSetting()">
                     <span class="setting-value" id="sv-fontsize">16px</span>
                 </div>
             </div>
@@ -665,6 +863,128 @@
                 </label>
             </div>
             <button class="settings-close" onclick="closeSettings()">完成</button>
+        </div>
+    </div>
+
+    <!-- COMPONENT PALETTE -->
+    <div class="comp-overlay" id="comp-overlay" onclick="if(event.target===this)closeCompPanel()">
+        <div class="comp-modal">
+            <h3>⊕ 组件库</h3>
+            <p class="comp-subtitle">点击任意组件，模板将插入到光标位置。选中文字后点击，可直接将文字转为对应组件。</p>
+
+            <div class="comp-category-title">📌 引用 & 强调</div>
+            <div class="comp-grid">
+                <div class="comp-card" onclick="insertComp('quote')"><div class="comp-card-icon">"</div><div class="comp-card-info"><div class="comp-card-name">经典引用</div><div class="comp-card-desc">大引号 + 左彩线，末段为来源</div></div></div>
+                <div class="comp-card" onclick="insertComp('quote-b')"><div class="comp-card-icon">❝</div><div class="comp-card-info"><div class="comp-card-name">渐变引用</div><div class="comp-card-desc">渐变背景 + 上下彩线 + 斜体</div></div></div>
+                <div class="comp-card" onclick="insertComp('quote-c')"><div class="comp-card-icon">💬</div><div class="comp-card-info"><div class="comp-card-name">气泡引用</div><div class="comp-card-desc">对话气泡，自动提取来源头像</div></div></div>
+                <div class="comp-card" onclick="insertComp('callout')"><div class="comp-card-icon">💡</div><div class="comp-card-info"><div class="comp-card-name">醒目强调</div><div class="comp-card-desc">自定义图标 + 渐变背景卡片</div></div></div>
+                <div class="comp-card" onclick="insertComp('highlight')"><div class="comp-card-icon">✨</div><div class="comp-card-info"><div class="comp-card-name">高亮大字</div><div class="comp-card-desc">双侧色条 + 居中大字金句</div></div></div>
+                <div class="comp-card" onclick="insertComp('summary')"><div class="comp-card-icon">📝</div><div class="comp-card-info"><div class="comp-card-name">文章摘要</div><div class="comp-card-desc">浅黄高亮框，多段落总结</div></div></div>
+            </div>
+
+            <div class="comp-category-title">🔢 流程 & 步骤</div>
+            <div class="comp-grid">
+                <div class="comp-card" onclick="insertComp('flow')"><div class="comp-card-icon">⬇</div><div class="comp-card-info"><div class="comp-card-name">竖排流程</div><div class="comp-card-desc">序号圆 + 渐变连线，每段一步</div></div></div>
+                <div class="comp-card" onclick="insertComp('numbered')"><div class="comp-card-icon">①</div><div class="comp-card-info"><div class="comp-card-name">数字徽章</div><div class="comp-card-desc">圆形序号 + 段落文字</div></div></div>
+                <div class="comp-card" onclick="insertComp('checklist')"><div class="comp-card-icon">☑</div><div class="comp-card-info"><div class="comp-card-name">清单面板</div><div class="comp-card-desc">macOS 风格清单块</div></div></div>
+            </div>
+
+            <div class="comp-category-title">📊 数据 & 对比</div>
+            <div class="comp-grid">
+                <div class="comp-card" onclick="insertComp('stat')"><div class="comp-card-icon">📈</div><div class="comp-card-info"><div class="comp-card-name">数据卡片</div><div class="comp-card-desc">每行：大数字｜标签｜说明</div></div></div>
+                <div class="comp-card" onclick="insertComp('compare')"><div class="comp-card-icon">⚖</div><div class="comp-card-info"><div class="comp-card-name">对比块</div><div class="comp-card-desc">左右两列，✓✗ 自动着色</div></div></div>
+                <div class="comp-card" onclick="insertComp('digest')"><div class="comp-card-icon">✦</div><div class="comp-card-info"><div class="comp-card-name">阅前须知</div><div class="comp-card-desc">灰底卡片 + 虚线分段</div></div></div>
+            </div>
+
+            <div class="comp-category-title">🎨 装饰 & 布局</div>
+            <div class="comp-grid">
+                <div class="comp-card" onclick="insertComp('divider-a')"><div class="comp-card-icon">——</div><div class="comp-card-info"><div class="comp-card-name">渐变分割线</div><div class="comp-card-desc">淡入淡出渐变横线</div></div></div>
+                <div class="comp-card" onclick="insertComp('divider-b')"><div class="comp-card-icon">✦</div><div class="comp-card-info"><div class="comp-card-name">菱形分割线</div><div class="comp-card-desc">中间菱形 + 两侧细线</div></div></div>
+                <div class="comp-card" onclick="insertComp('divider-c')"><div class="comp-card-icon">···</div><div class="comp-card-info"><div class="comp-card-name">圆点分割线</div><div class="comp-card-desc">三个渐变圆点装饰</div></div></div>
+                <div class="comp-card" onclick="insertComp('card')"><div class="comp-card-icon">▣</div><div class="comp-card-info"><div class="comp-card-name">卡片块</div><div class="comp-card-desc">圆角卡片背景容器</div></div></div>
+                <div class="comp-card" onclick="insertComp('intro')"><div class="comp-card-icon">┃</div><div class="comp-card-info"><div class="comp-card-name">侧边线</div><div class="comp-card-desc">每段左侧竖彩线</div></div></div>
+                <div class="comp-card" onclick="insertComp('grid2')"><div class="comp-card-icon">⊞</div><div class="comp-card-info"><div class="comp-card-name">2列图片</div><div class="comp-card-desc">2列图片网格外框</div></div></div>
+            </div>
+
+            <div class="comp-category-title">📄 头部 & 结尾</div>
+            <div class="comp-grid">
+                <div class="comp-card" onclick="insertComp('frontmatter')"><div class="comp-card-icon">📋</div><div class="comp-card-info"><div class="comp-card-name">文章头部</div><div class="comp-card-desc">Front matter 头部模板</div></div></div>
+                <div class="comp-card" onclick="insertComp('tail')"><div class="comp-card-icon">🏁</div><div class="comp-card-info"><div class="comp-card-name">尾图</div><div class="comp-card-desc">放在点赞区之后的配图</div></div></div>
+            </div>
+
+            <button class="comp-close" onclick="closeCompPanel()">关闭</button>
+        </div>
+    </div>
+
+    <!-- SELECTION FLOAT TOOLBAR -->
+    <div id="sel-toolbar">
+        <span class="sel-label">转为：</span>
+        <button class="sel-btn" onclick="wrapSelection('quote')">引用A</button>
+        <button class="sel-btn" onclick="wrapSelection('quote-b')">引用B</button>
+        <button class="sel-btn" onclick="wrapSelection('quote-c')">引用C</button>
+        <button class="sel-btn" onclick="wrapSelection('callout')">强调</button>
+        <button class="sel-btn" onclick="wrapSelection('highlight')">高亮</button>
+        <button class="sel-btn" onclick="wrapSelection('flow')">流程</button>
+        <button class="sel-btn" onclick="wrapSelection('stat')">数据</button>
+        <button class="sel-btn" onclick="wrapSelection('summary')">摘要</button>
+        <button class="sel-btn" onclick="wrapSelection('digest')">须知</button>
+        <button class="sel-btn" onclick="wrapSelection('intro')">侧线</button>
+    </div>
+
+    <!-- AI COMMAND BAR -->
+    <div class="ai-cmd-bar" id="ai-cmd-bar">
+        <span style="font-size:16px;flex-shrink:0;">✦</span>
+        <input id="ai-cmd-input" class="ai-cmd-input" placeholder="描述你想要的效果，如：把第一段改成 callout，在步骤1后插入数据卡片…" />
+        <button class="ai-cmd-btn" onclick="runAICmd()">执行</button>
+        <button class="ai-cmd-close" onclick="toggleAICmd()">✕</button>
+    </div>
+
+    <!-- OSS SETTINGS OVERLAY -->
+    <div class="ai-settings-overlay" id="oss-settings-overlay" onclick="if(event.target===this)closeOSSSettings()">
+        <div class="ai-settings-modal">
+            <h3>☁ 阿里云 OSS 图片上传</h3>
+            <p style="font-size:13px;color:#888;margin:0 0 20px 0;line-height:1.7;">
+                配置后，可将本地图片上传到 OSS 并自动替换 Markdown 中的路径。<br>
+                上传时请确保 Bucket 已开启 CORS（允许来源 <code style="color:#2dd4a8">*</code>，允许方法 PUT/GET）。<br>
+                <strong style="color:#e879f9;">注意：关于能否复制到微信 →</strong> 粘贴到微信编辑器时，微信会自动将 HTTPS 图片下载并转存到微信 CDN，因此 OSS 图片在微信编辑器中可以正常显示和发布。
+            </p>
+            <div class="setting-group">
+                <label id="oss-ak-label">AccessKeyId</label>
+                <input type="text" id="oss-access-key" placeholder="您的 AccessKeyId" style="width:100%;padding:8px 12px;background:#111;border:1px solid #2a2a2e;border-radius:8px;color:#ddd;font-size:13px;font-family:inherit;box-sizing:border-box;">
+            </div>
+            <div class="setting-group">
+                <label>AccessKeySecret</label>
+                <input type="password" id="oss-secret-key" placeholder="您的 AccessKeySecret" autocomplete="off" style="width:100%;padding:8px 12px;background:#111;border:1px solid #2a2a2e;border-radius:8px;color:#ddd;font-size:13px;font-family:inherit;box-sizing:border-box;">
+            </div>
+            <div class="setting-group">
+                <label>Bucket 名称</label>
+                <input type="text" id="oss-bucket" placeholder="如：my-images" style="width:100%;padding:8px 12px;background:#111;border:1px solid #2a2a2e;border-radius:8px;color:#ddd;font-size:13px;font-family:inherit;box-sizing:border-box;">
+            </div>
+            <div class="setting-group">
+                <label>Endpoint（地域节点）</label>
+                <input type="text" id="oss-endpoint" placeholder="如：oss-cn-hangzhou.aliyuncs.com" style="width:100%;padding:8px 12px;background:#111;border:1px solid #2a2a2e;border-radius:8px;color:#ddd;font-size:13px;font-family:inherit;box-sizing:border-box;">
+            </div>
+            <div class="setting-group">
+                <label>自定义域名（可选）</label>
+                <input type="text" id="oss-custom-domain" placeholder="如：https://cdn.example.com" style="width:100%;padding:8px 12px;background:#111;border:1px solid #2a2a2e;border-radius:8px;color:#ddd;font-size:13px;font-family:inherit;box-sizing:border-box;">
+            </div>
+            <div class="setting-group">
+                <label>上传路径前缀（可选）</label>
+                <input type="text" id="oss-prefix" placeholder="如：articles/2026/" style="width:100%;padding:8px 12px;background:#111;border:1px solid #2a2a2e;border-radius:8px;color:#ddd;font-size:13px;font-family:inherit;box-sizing:border-box;">
+            </div>
+            <div style="display:flex;gap:10px;margin-top:10px;padding:14px;background:#111;border-radius:8px;border:1px dashed #333;">
+                <div style="flex:1;">
+                    <p style="margin:0 0 8px 0;font-size:13px;color:#aaa;font-weight:600;">批量上传图片到 OSS</p>
+                    <p style="margin:0 0 10px 0;font-size:12px;color:#666;">选择本地图片文件，自动上传并将 Markdown 中同名的本地路径替换为 OSS 链接。</p>
+                    <input type="file" id="oss-file-input" multiple accept="image/*" style="display:none" onchange="handleOSSUpload(this.files)">
+                    <button onclick="document.getElementById('oss-file-input').click()" style="padding:7px 16px;background:#2dd4a820;border:1px solid #2dd4a840;color:#2dd4a8;font-size:13px;border-radius:7px;cursor:pointer;font-family:inherit;font-weight:600;">选择图片文件</button>
+                </div>
+            </div>
+            <div id="oss-upload-log" style="margin-top:10px;max-height:120px;overflow-y:auto;font-size:12px;color:#888;display:none;"></div>
+            <div style="display:flex;gap:10px;margin-top:20px;">
+                <button onclick="saveOSSSettings()" style="flex:1;padding:10px;background:#2dd4a8;border:none;border-radius:8px;color:#0a0a0c;font-weight:700;cursor:pointer;font-family:inherit;font-size:14px;">保存配置</button>
+                <button onclick="closeOSSSettings()" style="padding:10px 20px;background:#2a2a2e;border:none;border-radius:8px;color:#aaa;cursor:pointer;font-family:inherit;font-size:14px;">关闭</button>
+            </div>
         </div>
     </div>
 
@@ -2029,41 +2349,124 @@
     ================================================================ */
     function optimizeMarkdown() {
         let md = document.getElementById('markdown-input').value;
+        if (!md.trim()) { showToast('请先输入内容'); return; }
+
         let lines = md.split('\n');
         let out = [];
         let i = 0;
         let sectionNum = 0;
+        let changes = [];
 
-        while (i < lines.length) {
-            let line = lines[i];
+        // ── 检测是否已有 front matter ──
+        let hasFM = lines[0] && lines[0].trim() === '---';
+        let fmEnd = -1;
+        if (hasFM) {
+            for (let k = 1; k < lines.length; k++) {
+                if (lines[k].trim() === '---') { fmEnd = k; break; }
+            }
+        }
+
+        // ── 提取所有 ## 标题作为步骤 ──
+        let h1Title = '';
+        let h2Titles = [];
+        for (let line of lines) {
+            if (/^#\s+/.test(line) && !h1Title) h1Title = line.replace(/^#\s+/, '').trim();
+            if (/^##\s+/.test(line)) {
+                let t = line.replace(/^##\s+/, '').replace(/^\d{1,2}\s+/, '').trim();
+                h2Titles.push(t);
+            }
+        }
+
+        // ── 如果没有 front matter，自动生成 ──
+        if (!hasFM && (h1Title || h2Titles.length > 0)) {
+            let stepsStr = h2Titles.map((t, idx) => {
+                // 截取步骤副标题：取该标题后第一个非空行的前8字
+                let titleLine = '## ' + t;
+                let found = false;
+                let subtitle = '展开阅读';
+                for (let j = 0; j < lines.length; j++) {
+                    if (lines[j].trim().endsWith(t) && /^##/.test(lines[j])) { found = true; continue; }
+                    if (found && lines[j].trim() && !/^#/.test(lines[j])) {
+                        let sub = lines[j].trim().replace(/[*_`=~>:#!]/g, '').slice(0, 8);
+                        if (sub) subtitle = sub;
+                        break;
+                    }
+                }
+                return t + '|' + subtitle;
+            }).join(', ');
+
+            let fmLines = ['---'];
+            if (h1Title) { fmLines.push('subtitle: 精选分享'); fmLines.push('title: ' + h1Title); }
+            if (h2Titles.length > 0) fmLines.push('steps: ' + stepsStr);
+            fmLines.push('---', '');
+            lines = [...fmLines, ...lines];
+            changes.push('自动生成 front matter');
+        } else if (hasFM && fmEnd > 0 && h2Titles.length > 0) {
+            // ── front matter 已存在，检查是否有 steps，没有则补充 ──
+            let fmBlock = lines.slice(0, fmEnd + 1).join('\n');
+            if (!fmBlock.includes('steps:')) {
+                let stepsStr = h2Titles.map(t => {
+                    let found = false;
+                    let subtitle = '展开阅读';
+                    for (let j = 0; j < lines.length; j++) {
+                        if (/^##/.test(lines[j]) && lines[j].includes(t)) { found = true; continue; }
+                        if (found && lines[j].trim() && !/^#/.test(lines[j])) {
+                            let sub = lines[j].trim().replace(/[*_`=~>:#!]/g, '').slice(0, 8);
+                            if (sub) subtitle = sub;
+                            break;
+                        }
+                    }
+                    return t + '|' + subtitle;
+                }).join(', ');
+                lines.splice(fmEnd, 0, 'steps: ' + stepsStr);
+                changes.push('补充 steps 字段');
+            }
+        }
+
+        // ── 逐行处理正文 ──
+        let processedLines = lines;
+        let outLines = [];
+        i = 0;
+        sectionNum = 0;
+        while (i < processedLines.length) {
+            let line = processedLines[i];
             // 为 ## 标题添加编号（若无）
             if (/^##\s+(?!\d{1,2}\s)/.test(line)) {
                 sectionNum++;
                 let title = line.replace(/^##\s+/, '');
-                out.push('## ' + String(sectionNum).padStart(2, '0') + ' ' + title);
-                i++;
-                continue;
+                outLines.push('## ' + String(sectionNum).padStart(2, '0') + ' ' + title);
+                i++; continue;
             }
             // 检测 - [ ] / - [x] 列表块，转为 :::checklist
             if (/^-\s+\[[\sx]\]\s+/.test(line.trim())) {
                 let checklistLines = [];
-                while (i < lines.length && /^-\s+\[[\sx]\]\s+/.test(lines[i].trim())) {
-                    checklistLines.push(lines[i].trim().replace(/^-\s+\[[\sx]\]\s+/, '- '));
+                while (i < processedLines.length && /^-\s+\[[\sx]\]\s+/.test(processedLines[i].trim())) {
+                    checklistLines.push(processedLines[i].trim().replace(/^-\s+\[[\sx]\]\s+/, '- '));
                     i++;
                 }
-                out.push(':::checklist CHECKLIST');
-                out.push(...checklistLines);
-                out.push(':::');
-                out.push('');
+                outLines.push(':::checklist CHECKLIST');
+                outLines.push(...checklistLines);
+                outLines.push(':::'); outLines.push('');
+                changes.push('清单块转换');
                 continue;
             }
-            out.push(line);
+            outLines.push(line);
             i++;
         }
+        if (sectionNum > 0 && !changes.includes('章节编号')) changes.push('章节编号');
 
-        document.getElementById('markdown-input').value = out.join('\n');
+        let newVal = outLines.join('\n');
+        document.getElementById('markdown-input').value = newVal;
+        immediatePushHistory(newVal);
         updatePreview();
-        showToast('已优化：章节编号 + 清单块');
+
+        // ── 检测本地图片路径 ──
+        let localImgs = (newVal.match(/!\[[^\]]*\]\((?!https?:\/\/)[^)]+\)/g) || []);
+        let toastMsg = '已优化：' + (changes.length ? changes.join(' + ') : '无变化');
+        if (localImgs.length > 0) {
+            toastMsg += ' ⚠️ 发现 ' + localImgs.length + ' 张本地图片，建议通过「OSS 图片」上传';
+        }
+        showToast(toastMsg);
     }
 
     function copySource() {
@@ -2105,6 +2508,7 @@
         ta.value = before + insert + after;
         ta.selectionStart = ta.selectionEnd = start + insert.length;
         ta.focus();
+        immediatePushHistory(ta.value);
         updatePreview();
     }
 
@@ -2219,24 +2623,415 @@
         showToast('AI 设置已保存');
     }
 
-    const AI_SYSTEM_PROMPT = `你是一个微信公众号排版助手。用户会给你一段普通 Markdown 文档，你需要改写成「镜哥排版器」支持的增强格式，使排版精致、符合模板风格。要求：
+    /* ================================================================
+       OSS 图片上传
+    ================================================================ */
+    const OSS_STORAGE_KEY = 'jingge_oss_config';
 
-1. 在文档最开头添加 YAML front matter（用 --- 包裹），包含以下字段（根据正文推断）：
-   - subtitle: 简短副标题/分类
-   - title: 主标题，若需两行用 \\n 连接，如 "第一行\\n第二行"
-   - tags: 3 个左右关键词，逗号分隔
-   - banner: 一句吸引人的信息栏文案
-   - steps: 若有步骤结构，用 "步骤名|副标题" 逗号分隔，如 "准备|先定调, 执行|再出图"
+    function getOSSConfig() {
+        try {
+            let raw = localStorage.getItem(OSS_STORAGE_KEY);
+            if (raw) return JSON.parse(raw);
+        } catch(e) {}
+        return { accessKey: '', secretKey: '', bucket: '', endpoint: '', customDomain: '', prefix: '' };
+    }
 
-2. 正文中的一级标题（#）可并入 front matter 的 title，或保留为正文首句。二级标题（##）改为带编号形式：## 01 标题、## 02 标题……
+    function openOSSSettings() {
+        let c = getOSSConfig();
+        document.getElementById('oss-access-key').value = c.accessKey || '';
+        document.getElementById('oss-secret-key').value = c.secretKey || '';
+        document.getElementById('oss-bucket').value = c.bucket || '';
+        document.getElementById('oss-endpoint').value = c.endpoint || '';
+        document.getElementById('oss-custom-domain').value = c.customDomain || '';
+        document.getElementById('oss-prefix').value = c.prefix || '';
+        document.getElementById('oss-settings-overlay').classList.add('active');
+    }
 
-3. 对重要概念使用 ==高亮==，适当使用 **粗体**。
+    function closeOSSSettings() {
+        document.getElementById('oss-settings-overlay').classList.remove('active');
+    }
 
-4. 若有清单、要点列表，可改为 :::checklist 标题 块，内容用 - 列表项。
+    function saveOSSSettings() {
+        let cfg = {
+            accessKey: document.getElementById('oss-access-key').value.trim(),
+            secretKey: document.getElementById('oss-secret-key').value.trim(),
+            bucket: document.getElementById('oss-bucket').value.trim(),
+            endpoint: document.getElementById('oss-endpoint').value.trim(),
+            customDomain: document.getElementById('oss-custom-domain').value.trim(),
+            prefix: document.getElementById('oss-prefix').value.trim(),
+        };
+        localStorage.setItem(OSS_STORAGE_KEY, JSON.stringify(cfg));
+        showToast('OSS 配置已保存');
+    }
 
-5. 需要强调的提示用 :::info 或 > [!tip] 等形式。
+    async function hmacSHA1Base64(key, message) {
+        const enc = new TextEncoder();
+        const cryptoKey = await crypto.subtle.importKey(
+            'raw', enc.encode(key), { name: 'HMAC', hash: 'SHA-1' }, false, ['sign']
+        );
+        const sig = await crypto.subtle.sign('HMAC', cryptoKey, enc.encode(message));
+        return btoa(String.fromCharCode(...new Uint8Array(sig)));
+    }
 
-6. 只输出改写后的完整 Markdown，不要解释、不要前后缀。保留用户原有的图片链接或占位。`;
+    async function uploadFileToOSS(file) {
+        let c = getOSSConfig();
+        if (!c.accessKey || !c.secretKey || !c.bucket || !c.endpoint) {
+            throw new Error('OSS 配置不完整，请先完善设置');
+        }
+        let prefix = c.prefix ? c.prefix.replace(/\/+$/, '') + '/' : '';
+        let ext = file.name.split('.').pop();
+        let objKey = prefix + Date.now() + '_' + Math.random().toString(36).slice(2, 7) + '.' + ext;
+        let date = new Date().toUTCString();
+        let contentType = file.type || 'application/octet-stream';
+        let canonResource = '/' + c.bucket + '/' + objKey;
+        let stringToSign = 'PUT\n\n' + contentType + '\n' + date + '\n' + canonResource;
+        let sig = await hmacSHA1Base64(c.secretKey, stringToSign);
+        let auth = 'OSS ' + c.accessKey + ':' + sig;
+        let endpoint = c.endpoint.replace(/^https?:\/\//, '');
+        let url = 'https://' + c.bucket + '.' + endpoint + '/' + objKey;
+        let resp = await fetch(url, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': contentType,
+                'Date': date,
+                'Authorization': auth,
+            },
+            body: file,
+        });
+        if (!resp.ok) {
+            let txt = await resp.text();
+            throw new Error('OSS 上传失败：' + resp.status + ' ' + txt.slice(0, 200));
+        }
+        // Return public URL
+        if (c.customDomain) {
+            let domain = c.customDomain.replace(/\/+$/, '');
+            return domain + '/' + objKey;
+        }
+        return url;
+    }
+
+    async function handleOSSUpload(files) {
+        if (!files || files.length === 0) return;
+        let log = document.getElementById('oss-upload-log');
+        log.style.display = 'block';
+        log.innerHTML = '';
+
+        let ta = document.getElementById('markdown-input');
+        let md = ta.value;
+        let replaced = 0;
+
+        for (let file of files) {
+            log.innerHTML += `⏳ 正在上传 ${file.name}…<br>`;
+            try {
+                let ossUrl = await uploadFileToOSS(file);
+                // Replace matching local paths (exact filename match)
+                let fname = file.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                // Match: ![anything](any path ending with filename)
+                let re = new RegExp('(!\\[[^\\]]*\\]\\()([^)]*[/\\\\]?)' + fname + '(\\))', 'g');
+                let newMd = md.replace(re, '$1' + ossUrl + '$3');
+                // Also match bare filename
+                let re2 = new RegExp('(!\\[[^\\]]*\\]\\()' + fname + '(\\))', 'g');
+                newMd = newMd.replace(re2, '$1' + ossUrl + '$2');
+                if (newMd !== md) {
+                    replaced++;
+                    md = newMd;
+                    log.innerHTML += `✅ ${file.name} → <a href="${ossUrl}" target="_blank" style="color:#2dd4a8;">${ossUrl.split('/').pop()}</a><br>`;
+                } else {
+                    log.innerHTML += `⚠️ ${file.name} 上传成功但未在 Markdown 中找到匹配路径：<a href="${ossUrl}" target="_blank" style="color:#2dd4a8;">${ossUrl}</a><br>`;
+                }
+            } catch (err) {
+                log.innerHTML += `❌ ${file.name} 失败：${err.message}<br>`;
+            }
+        }
+
+        if (replaced > 0) {
+            ta.value = md;
+            immediatePushHistory(md);
+            updatePreview();
+            showToast('已替换 ' + replaced + ' 处图片路径为 OSS 链接');
+        }
+        saveOSSSettings();
+        log.scrollTop = log.scrollHeight;
+    }
+
+    /* ================================================================
+       THEME QUICK PREVIEW (keyboard shortcuts)
+    ================================================================ */
+    const THEME_KEYS = ['dark-teal','dark-orange','light-minimal','light-blue','light-amber','jingge','jingge2'];
+    function cycleTheme(dir) {
+        let sel = document.getElementById('template-select');
+        let idx = THEME_KEYS.indexOf(sel.value);
+        idx = (idx + dir + THEME_KEYS.length) % THEME_KEYS.length;
+        sel.value = THEME_KEYS[idx];
+        applyTemplate(THEME_KEYS[idx]);
+        showToast('主题：' + sel.options[sel.selectedIndex].text + '  (←/→ 切换)');
+    }
+
+    /* ================================================================
+       COMPONENT PALETTE
+    ================================================================ */
+    const COMP_TEMPLATES = {
+        quote: `:::quote\n你的引用内容写在这里，可以多行。\n\n引用的来源或署名（可选，末段自动识别为来源）\n:::`,
+        'quote-b': `:::quote-b\n引用内容写在这里，支持**粗体**和==高亮==。\n\n来源署名\n:::`,
+        'quote-c': `:::quote-c\n对话气泡内容写在这里。\n\n发言人姓名\n:::`,
+        callout: `:::callout 🚀\n重要结论或核心观点写在这里，支持多行。\n:::`,
+        highlight: `:::highlight\n这里写金句或核心论点，适合居中大字展示。\n:::`,
+        summary: `:::summary\n第一段摘要内容写在这里。\n\n第二段摘要，可以写 3-4 段 150 字左右。\n\n第三段摘要内容。\n:::`,
+        flow: `:::flow\n第一步标题\n这一步的说明文字，可以省略。\n\n第二步标题\n第二步的说明。\n\n第三步标题\n第三步的说明。\n:::`,
+        numbered: `:::numbered\n第一段内容，自动加圆形序号。\n\n第二段内容。\n\n第三段内容。\n:::`,
+        checklist: `:::checklist CHECKLIST\n- 任务项一\n- 任务项二\n- 任务项三\n:::`,
+        stat: `:::stat\n3x | 速度提升 | 比上代\n50% | 成本降低 | 外包对比\n4h | 完成全案 | 从0到1\n:::`,
+        compare: `:::compare\n## ✓ 方案 A\n✓ 优势一\n✓ 优势二\n✓ 优势三\n---\n## ✗ 方案 B\n✗ 劣势一\n✗ 劣势二\n✗ 劣势三\n:::`,
+        digest: `:::digest\n阅前须知第一段内容，简要说明。\n\n第二段，可以介绍背景或注意事项。\n:::`,
+        'divider-a': `:::divider A:::`,
+        'divider-b': `:::divider B:::`,
+        'divider-c': `:::divider C:::`,
+        card: `:::card\n卡片块内容，支持完整 Markdown。\n:::`,
+        intro: `:::intro\n第一段侧边线内容。\n\n第二段侧边线内容。\n:::`,
+        grid2: `:::grid-2\n![图片1](image1.jpg)\n![图片2](image2.jpg)\n:::`,
+        frontmatter: `---\nsubtitle: 分类标签\ntitle: "标题第一行\\n标题第二行"\ntags: 标签1, 标签2, 标签3\nbanner: 一句吸引人的文案\nsteps: 步骤一|副标题, 步骤二|副标题, 步骤三|副标题\nhstyle: A\nsstyle: A\n---`,
+        tail: `:::tail\n![尾图](尾图.png)\n:::`,
+    };
+
+    function openCompPanel() { document.getElementById('comp-overlay').classList.add('active'); }
+    function closeCompPanel() { document.getElementById('comp-overlay').classList.remove('active'); }
+
+    function insertComp(type) {
+        let ta = document.getElementById('markdown-input');
+        let tpl = COMP_TEMPLATES[type];
+        if (!tpl) return;
+        let start = ta.selectionStart;
+        let end = ta.selectionEnd;
+        let sel = ta.value.slice(start, end).trim();
+
+        // If text is selected and the component wraps content, embed selection
+        if (sel) {
+            // For wrapping components, embed the selected text
+            let wrapTypes = ['quote','quote-b','quote-c','callout','highlight','summary','flow','numbered','digest','card','intro'];
+            if (wrapTypes.includes(type)) {
+                let open = `:::${type}${type==='callout'?' 💡':''}`;
+                let insert = `\n${open}\n${sel}\n:::\n`;
+                ta.value = ta.value.slice(0, start) + insert + ta.value.slice(end);
+                ta.selectionStart = ta.selectionEnd = start + insert.length;
+                immediatePushHistory(ta.value);
+                updatePreview();
+                closeCompPanel();
+                return;
+            }
+        }
+
+        // Insert template at cursor
+        let before = ta.value.slice(0, start);
+        let after = ta.value.slice(end);
+        let insert = '\n' + tpl + '\n';
+        ta.value = before + insert + after;
+        ta.selectionStart = ta.selectionEnd = start + insert.length;
+        ta.focus();
+        immediatePushHistory(ta.value);
+        updatePreview();
+        closeCompPanel();
+    }
+
+    /* ================================================================
+       SELECTION FLOAT TOOLBAR
+    ================================================================ */
+    function wrapSelection(type) {
+        let ta = document.getElementById('markdown-input');
+        let start = ta.selectionStart;
+        let end = ta.selectionEnd;
+        let sel = ta.value.slice(start, end).trim();
+        if (!sel) return;
+
+        let typeStr = type;
+        let meta = '';
+        if (type === 'callout') meta = ' 💡';
+
+        let insert = `\n:::${typeStr}${meta}\n${sel}\n:::\n`;
+        ta.value = ta.value.slice(0, start) + insert + ta.value.slice(end);
+        ta.selectionStart = ta.selectionEnd = start + insert.length;
+        ta.focus();
+        immediatePushHistory(ta.value);
+        updatePreview();
+        hideSelToolbar();
+    }
+
+    function hideSelToolbar() {
+        document.getElementById('sel-toolbar').classList.remove('show');
+    }
+
+    document.getElementById('markdown-input').addEventListener('mouseup', (e) => {
+        setTimeout(() => {
+            let ta = document.getElementById('markdown-input');
+            let sel = ta.value.slice(ta.selectionStart, ta.selectionEnd).trim();
+            let toolbar = document.getElementById('sel-toolbar');
+            if (sel.length > 2) {
+                let rect = ta.getBoundingClientRect();
+                // Position above the textarea, centered
+                toolbar.style.top = (rect.top - 10 + window.scrollY) + 'px';
+                toolbar.style.left = (e.clientX - 60) + 'px';
+                toolbar.classList.add('show');
+            } else {
+                toolbar.classList.remove('show');
+            }
+        }, 10);
+    });
+    document.addEventListener('mousedown', (e) => {
+        if (!e.target.closest('#sel-toolbar') && !e.target.closest('#markdown-input')) {
+            hideSelToolbar();
+        }
+    });
+
+    /* ================================================================
+       AI COMMAND BAR
+    ================================================================ */
+    function toggleAICmd() {
+        let bar = document.getElementById('ai-cmd-bar');
+        if (bar.classList.contains('show')) {
+            bar.classList.remove('show');
+        } else {
+            bar.classList.add('show');
+            document.getElementById('ai-cmd-input').focus();
+        }
+    }
+
+    document.addEventListener('keydown', (e2) => {
+        if (e2.altKey && e2.key === 'a') {
+            e2.preventDefault();
+            toggleAICmd();
+        }
+    });
+
+    const AI_CMD_SYSTEM = `你是「镜哥排版器」的 AI 样式指令助手。
+
+【核心原则】
+• 只调整排版样式，绝对不修改任何正文内容、词句
+• 图片路径 ![](xxx) 必须100%原样保留
+• 只输出修改后的完整 Markdown，不要任何解释
+
+【你可以做的事】
+1. 将普通段落转换为指定组件（quote/callout/flow/stat等）
+2. 在文章指定位置插入新组件模板
+3. 调整现有组件的类型（如把 quote 改成 callout）
+4. 为段落添加 ==高亮== 或 **粗体** 标记
+5. 调整 front matter 中的 hstyle/sstyle 值
+
+【所有支持的组件语法（:::type ... :::）】
+- :::quote ::: ———————— 经典引用（末段为来源）
+- :::quote-b ::: ————— 渐变引用
+- :::quote-c ::: ————— 气泡引用（末段为发言人）
+- :::callout 🚀 ::: ——— 醒目强调（可自定义emoji）
+- :::highlight ::: ——— 高亮大字金句（居中）
+- :::summary ::: ———— 文章摘要（多段落浅黄背景）
+- :::flow ::: ————————竖排流程（每空行一步，首行为步骤标题）
+- :::stat ::: ————————数据卡片（每行：数字|标签|说明）
+- :::compare ::: ———— 对比块（用 --- 分左右列）
+- :::digest ::: ——————阅前须知（灰底虚线分段）
+- :::intro ::: ——————侧边线段落
+- :::numbered ::: ——— 数字徽章列表
+- :::divider A/B/C ::: 装饰分割线（A渐变/B菱形/C圆点）
+- :::card ::: ———————圆角卡片容器
+- :::checklist 标题 ::: macOS风格清单
+
+【头部/步骤风格值】
+- hstyle: A（默认）/ B（边框卡片）/ C（暗底）/ D（居中）/ E（极简徽章）
+- sstyle: A（高亮首卡）/ B（圆圈列表）/ C（时间轴）/ D（渐变序号）`;
+
+    async function runAICmd() {
+        let instruction = document.getElementById('ai-cmd-input').value.trim();
+        if (!instruction) { showToast('请输入指令'); return; }
+
+        let c = getAIConfig();
+        if (!c.apiKey) { openAISettings(); showToast('请先配置 API Key'); return; }
+
+        let md = document.getElementById('markdown-input').value;
+        let ta = document.getElementById('markdown-input');
+        let sel = md.slice(ta.selectionStart, ta.selectionEnd).trim();
+
+        let userMsg = sel
+            ? `对以下选中段落执行操作：${instruction}\n\n选中内容：\n${sel}\n\n完整文档（请替换选中部分并返回完整文档）：\n${md}`
+            : `对以下文档执行操作：${instruction}\n\n文档内容：\n${md}`;
+
+        let loading = document.getElementById('ai-loading');
+        let loadingText = document.getElementById('ai-loading-text');
+        loadingText.textContent = 'AI 正在调整组件…';
+        loading.classList.add('active');
+        try {
+            let res = await fetch(c.apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + c.apiKey },
+                body: JSON.stringify({
+                    model: c.model,
+                    messages: [
+                        { role: 'system', content: AI_CMD_SYSTEM },
+                        { role: 'user', content: userMsg }
+                    ],
+                    temperature: 0.2
+                })
+            });
+            if (!res.ok) throw new Error(res.status + ' ' + (await res.text()).slice(0, 200));
+            let data = await res.json();
+            let content = data.choices?.[0]?.message?.content;
+            if (!content) throw new Error('API 返回格式异常');
+            content = content.trim().replace(/^```\w*\n?/, '').replace(/\n?```\s*$/, '');
+            document.getElementById('markdown-input').value = content;
+            immediatePushHistory(content);
+            updatePreview();
+            document.getElementById('ai-cmd-input').value = '';
+            showToast('AI 调整完成');
+        } catch (err) {
+            showToast('AI 调用失败: ' + (err.message || String(err)));
+        } finally {
+            loading.classList.remove('active');
+        }
+    }
+
+    document.getElementById('ai-cmd-input').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); runAICmd(); }
+        if (e.key === 'Escape') toggleAICmd();
+    });
+
+    const AI_SYSTEM_PROMPT = `你是「镜哥排版器」的样式优化 AI。你的核心职责是：**只调整排版样式和结构，绝对不修改任何正文内容、词句或图片链接。**
+
+═══ 核心原则 ═══
+• 所有正文文字、标点、图片路径必须原样保留，一字不改。
+• 只做结构包裹和样式分配，让内容以更好看的方式呈现。
+• 图片路径 ![](xxx) 必须100%原样保留，一个字符都不能改。
+
+═══ 第一步：构建 front matter ═══
+在文档最开头添加 YAML front matter（用 --- 包裹）：
+- subtitle: 从正文推断的分类标签（简短，3-6字）
+- title: 主标题，通常来自正文第一个 # 标题，若需两行用 \\n 分隔
+- tags: 从正文提取 3-4 个关键词，逗号分隔
+- banner: 从正文第一段提取最吸引人的一句话（不超过40字，原文摘取不改写）
+- steps: 【重要】从正文所有 ## 二级标题中提取，格式为 "标题文字|副标题"，逗号分隔
+  示例：如正文有 "## 01 准备工作"，steps 应为 "准备工作|本节概要"
+  步骤副标题从该章节第一句话提取（不超过8字）
+  有几个 ## 标题就生成几个 step，不能遗漏
+
+═══ 第二步：二级标题编号化 ═══
+将 ## 标题改为带两位数字编号：## 01 标题、## 02 标题……（若已有编号则保持不变）
+
+═══ 第三步：关键内容组件化 ═══
+根据内容类型，将合适的段落用组件包裹（只选最合适的，不要过度包裹）：
+
+【引用/观点/金句段落】→ 用 :::quote ::: 包裹（末段放来源名称）
+【重要结论/核心观点】→ 用 :::callout 💡 ::: 包裹
+【有明确来源的对话/评论】→ 用 :::quote-c ::: 包裹
+【多个步骤列表】→ 如果是有序流程，用 :::flow ::: 包裹
+【明显的数据对比段落】→ 用 :::stat ::: 包裹（每行：数字|标签|说明）
+【开头总结/摘要段落（前2-3段）】→ 用 :::summary ::: 包裹（若已有则不重复）
+【重要提示/注意事项】→ 用 > [!tip] 或 > [!info] 包裹
+
+═══ 第四步：行内样式 ═══
+• 对专有名词、产品名、重要数据、核心结论，使用 ==高亮==
+• 对需要强调的词汇，使用 **粗体**
+• 不要滥用，每段最多 2 处高亮或粗体
+
+═══ 输出要求 ═══
+• 只输出完整 Markdown，不加任何解释或前后缀
+• 保留原文所有段落顺序
+• 保留所有图片语法和路径，一字不改
+• 不添加、不删除任何正文内容`;
 
     async function runAIOptimize() {
         let c = getAIConfig();
@@ -2282,6 +3077,7 @@
                 content = content.replace(/^```\w*\n?/, '').replace(/\n?```\s*$/, '');
             }
             document.getElementById('markdown-input').value = content;
+            immediatePushHistory(content);
             updatePreview();
             showToast('AI 优化完成');
         } catch (err) {
@@ -2532,8 +3328,101 @@ AI 不是替代你，而是让你变成更好的自己。
 :::`;
 
         document.getElementById('markdown-input').value = example;
+        immediatePushHistory(example);
         updatePreview();
         showToast('已加载示例内容');
+    }
+
+    /* ================================================================
+       UNDO / REDO HISTORY
+    ================================================================ */
+    let _history = [];
+    let _histIdx = -1;
+    let _histPushTimer = null;
+    const MAX_HIST = 200;
+
+    function _pushHistory(val) {
+        if (_history[_histIdx] === val) return;
+        _history = _history.slice(0, _histIdx + 1);
+        _history.push(val);
+        if (_history.length > MAX_HIST) { _history.shift(); }
+        _histIdx = _history.length - 1;
+        _updateUndoRedoBtns();
+    }
+
+    function _updateUndoRedoBtns() {
+        let u = document.getElementById('btn-undo');
+        let r = document.getElementById('btn-redo');
+        if (u) { u.disabled = _histIdx <= 0; u.style.opacity = _histIdx <= 0 ? '0.3' : '1'; }
+        if (r) { r.disabled = _histIdx >= _history.length - 1; r.style.opacity = _histIdx >= _history.length - 1 ? '0.3' : '1'; }
+    }
+
+    function editorUndo() {
+        if (_histIdx <= 0) return;
+        _histIdx--;
+        let ta = document.getElementById('markdown-input');
+        ta.value = _history[_histIdx];
+        _updateUndoRedoBtns();
+        updatePreview();
+    }
+
+    function editorRedo() {
+        if (_histIdx >= _history.length - 1) return;
+        _histIdx++;
+        let ta = document.getElementById('markdown-input');
+        ta.value = _history[_histIdx];
+        _updateUndoRedoBtns();
+        updatePreview();
+    }
+
+    // Debounced push so every keystroke doesn't flood history
+    function debouncedPushHistory(val) {
+        clearTimeout(_histPushTimer);
+        _histPushTimer = setTimeout(() => _pushHistory(val), 600);
+    }
+
+    // Immediate push on paste / insertFormat / wrapSelection / insertComp
+    function immediatePushHistory(val) {
+        clearTimeout(_histPushTimer);
+        _pushHistory(val);
+    }
+
+    /* ================================================================
+       SYNCHRONIZED SCROLLING
+    ================================================================ */
+    let _syncScroll = true;
+    let _isSyncingFromEditor = false;
+    let _isSyncingFromPreview = false;
+
+    function toggleSyncScroll() {
+        _syncScroll = !_syncScroll;
+        let btn = document.getElementById('btn-sync-scroll');
+        if (btn) {
+            btn.style.background = _syncScroll ? '#2dd4a820' : 'transparent';
+            btn.style.color = _syncScroll ? '#2dd4a8' : '#555';
+            btn.style.borderColor = _syncScroll ? '#2dd4a840' : '#333';
+            btn.textContent = _syncScroll ? '⇅ 同步' : '⇅ 独立';
+        }
+    }
+
+    function _onEditorScroll() {
+        if (!_syncScroll || _isSyncingFromPreview) return;
+        _isSyncingFromEditor = true;
+        let ta = document.getElementById('markdown-input');
+        let preview = document.getElementById('preview-area');
+        let ratio = ta.scrollTop / Math.max(1, ta.scrollHeight - ta.clientHeight);
+        preview.scrollTop = ratio * (preview.scrollHeight - preview.clientHeight);
+        requestAnimationFrame(() => { _isSyncingFromEditor = false; });
+    }
+
+    function _onPreviewScroll() {
+        if (!_syncScroll || _isSyncingFromEditor) return;
+        _isSyncingFromPreview = true;
+        let ta = document.getElementById('markdown-input');
+        let preview = document.getElementById('preview-area');
+        let ratio = preview.scrollTop / Math.max(1, preview.scrollHeight - preview.clientHeight);
+        ta.scrollTop = ratio * (ta.scrollHeight - ta.clientHeight);
+        requestAnimationFrame(() => { _isSyncingFromPreview = false; });
     }
 
     /* ================================================================
@@ -2550,7 +3439,27 @@ AI 不是替代你，而是让你变成更好的自己。
             closeSettings();
             closeHelp();
             closeAISettings();
+            closeCompPanel();
         }
+        // Ctrl+Z = Undo (intercept only when editor focused)
+        if (e.ctrlKey && e.key === 'z' && !e.shiftKey && document.activeElement === document.getElementById('markdown-input')) {
+            e.preventDefault();
+            editorUndo();
+        }
+        // Ctrl+Shift+Z or Ctrl+Y = Redo
+        if ((e.ctrlKey && e.shiftKey && e.key === 'Z') || (e.ctrlKey && e.key === 'y')) {
+            if (document.activeElement === document.getElementById('markdown-input')) {
+                e.preventDefault();
+                editorRedo();
+            }
+        }
+        // Ctrl+ArrowLeft / Ctrl+ArrowRight = 快速切换主题（不在编辑器内时）
+        if (e.ctrlKey && !e.shiftKey && !e.altKey && document.activeElement !== document.getElementById('markdown-input') && document.activeElement !== document.getElementById('ai-cmd-input')) {
+            if (e.key === 'ArrowLeft') { e.preventDefault(); cycleTheme(-1); }
+            if (e.key === 'ArrowRight') { e.preventDefault(); cycleTheme(1); }
+        }
+        // Escape = close OSS too
+        if (e.key === 'Escape') { closeOSSSettings(); }
     });
 
     // Tab key in editor inserts spaces
@@ -2640,7 +3549,18 @@ AI 不是替代你，而是让你变成更好的自己。
     /* ================================================================
        INIT
     ================================================================ */
-    document.getElementById('markdown-input').addEventListener('input', updatePreview);
+    let _ta = document.getElementById('markdown-input');
+    let _previewArea = document.getElementById('preview-area');
+
+    // History: push on input (debounced), immediate on paste
+    _ta.addEventListener('input', (e) => {
+        updatePreview();
+        debouncedPushHistory(_ta.value);
+    });
+
+    // Scroll sync bindings
+    _ta.addEventListener('scroll', _onEditorScroll);
+    _previewArea.addEventListener('scroll', _onPreviewScroll);
 
     // Load example on start
     loadExample();
