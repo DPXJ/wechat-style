@@ -1,11 +1,13 @@
 (function () {
   const LOCAL_PROFILE_KEY = 'jingge_local_profile';
   const HUB_OVERLAY_ID = 'settings-hub-overlay';
-  const IMPORT_STATE = { markdownName: '', importedAt: '', sourceMode: 'none', assets: new Map(), assetCount: 0 };
+  const IMPORT_STATE = { markdownName: '', markdownRelativePath: '', markdownDir: '', importedAt: '', sourceMode: 'none', assets: new Map(), assetCount: 0 };
   const AUTO_SYNC_STATE = { phase: 'idle', total: 0, completed: 0, uploaded: 0, failed: 0, missing: 0, message: '' };
+  const IMPORT_PIPELINE_STATE = { active: false, mode: 'idle', title: '', detail: '', progress: 0, action: '', actionLabel: '' };
   const baseUpdatePreview = window.updatePreview;
   let autoSyncTimer = null;
   let autoSyncInFlight = null;
+  let importOverlayTimer = null;
 
   function escapeHtml(value) {
     return String(value == null ? '' : value)
@@ -27,8 +29,37 @@
     if (normalized.startsWith('data:')) return normalized;
     normalized = normalized.split('#')[0].split('?')[0];
     try { normalized = decodeURIComponent(normalized); } catch (e) {}
-    normalized = normalized.replace(/\\/g, '/').replace(/^\.\/+/, '').replace(/^\/+/, '');
-    return normalized.toLowerCase();
+    normalized = normalized.replace(/\\/g, '/').replace(/^file:\/+/i, '').replace(/^\.\/+/, '').replace(/^\/+/, '');
+    const segments = normalized.split('/').filter(Boolean);
+    const resolved = [];
+    segments.forEach((segment) => {
+      if (!segment || segment === '.') return;
+      if (segment === '..') {
+        if (resolved.length && resolved[resolved.length - 1] !== '..') resolved.pop();
+        else resolved.push(segment);
+        return;
+      }
+      resolved.push(segment);
+    });
+    return resolved.join('/').toLowerCase();
+  }
+
+  function getDirectoryPath(value) {
+    const normalized = normalizeAssetPath(value);
+    if (!normalized) return '';
+    const parts = normalized.split('/');
+    parts.pop();
+    return parts.join('/');
+  }
+
+  function resolveRelativeAssetPath(baseDir, src) {
+    const raw = String(src || '').trim();
+    if (!raw || raw.startsWith('data:') || /^(https?:)?\/\//i.test(raw)) return raw;
+    if (/^[a-z]:[\\/]/i.test(raw)) return normalizeAssetPath(raw);
+    const normalizedBase = normalizeAssetPath(baseDir || '');
+    const normalizedSrc = raw.replace(/\\/g, '/');
+    if (normalizedSrc.startsWith('/')) return normalizeAssetPath(normalizedSrc);
+    return normalizeAssetPath((normalizedBase ? normalizedBase + '/' : '') + normalizedSrc);
   }
 
   function isMarkdownFile(file) {
@@ -81,6 +112,7 @@
     if (relKey) {
       keys.add(relKey);
       const parts = relKey.split('/');
+      if (parts.length > 1) keys.add(parts.slice(1).join('/'));
       for (let i = 1; i < parts.length; i++) keys.add(parts.slice(i).join('/'));
       if (parts.length > 1) keys.add(parts.slice(-2).join('/'));
     }
@@ -101,11 +133,17 @@
     if (String(src).startsWith('data:')) return dataUrlToFile(src, 'pasted-image');
     const normalized = normalizeAssetPath(src);
     if (!normalized) return null;
+    const resolvedFromMarkdown = resolveRelativeAssetPath(IMPORT_STATE.markdownDir, src);
     const candidates = new Set([normalized]);
+    if (resolvedFromMarkdown) candidates.add(resolvedFromMarkdown);
     const parts = normalized.split('/');
     for (let i = 1; i < parts.length; i++) candidates.add(parts.slice(i).join('/'));
     candidates.add(parts[parts.length - 1]);
     if (parts.length > 1) candidates.add(parts.slice(-2).join('/'));
+    if (resolvedFromMarkdown && resolvedFromMarkdown.includes('/')) {
+      const resolvedParts = resolvedFromMarkdown.split('/');
+      for (let i = 1; i < resolvedParts.length; i++) candidates.add(resolvedParts.slice(i).join('/'));
+    }
     for (const key of candidates) {
       if (key && IMPORT_STATE.assets.has(key)) return IMPORT_STATE.assets.get(key);
     }
@@ -214,9 +252,46 @@
       .settings-hub-footer-note { color: #7f8ba0; font-size: 12px; line-height: 1.7; }
       .settings-account-hero { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 14px 16px; border-radius: 16px; margin-bottom: 16px; background: rgba(8, 11, 15, 0.72); border: 1px solid rgba(69, 78, 96, 0.26); }
       .settings-account-hero strong { display: block; color: #eef3f9; margin-bottom: 4px; }
+      .preview-panel { position: relative; }
+      .import-progress-overlay { position: absolute; inset: 52px 16px 16px; display: none; align-items: center; justify-content: center; z-index: 12; background: rgba(4, 7, 11, 0.84); backdrop-filter: blur(10px); border: 1px solid rgba(69, 78, 96, 0.22); border-radius: 26px; }
+      .import-progress-overlay.active { display: flex; }
+      .import-progress-card { width: min(440px, calc(100% - 28px)); padding: 26px 24px 22px; border-radius: 24px; border: 1px solid rgba(86, 101, 124, 0.34); background: radial-gradient(circle at top right, rgba(45, 212, 168, 0.12), transparent 32%), linear-gradient(180deg, rgba(17, 22, 31, 0.98), rgba(9, 12, 18, 0.98)); box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45); }
+      .import-progress-card[data-mode="warning"] { background: radial-gradient(circle at top right, rgba(251, 191, 36, 0.14), transparent 32%), linear-gradient(180deg, rgba(24, 19, 10, 0.98), rgba(12, 10, 8, 0.98)); }
+      .import-progress-card[data-mode="success"] { background: radial-gradient(circle at top right, rgba(45, 212, 168, 0.16), transparent 32%), linear-gradient(180deg, rgba(10, 22, 18, 0.98), rgba(7, 14, 12, 0.98)); }
+      .import-progress-eyebrow { font-size: 11px; letter-spacing: 0.24em; text-transform: uppercase; color: #2dd4a8; margin-bottom: 10px; }
+      .import-progress-card[data-mode="warning"] .import-progress-eyebrow { color: #fbbf24; }
+      .import-progress-title { font-size: 24px; color: #f5f7fb; margin-bottom: 10px; }
+      .import-progress-detail { color: #9aa7bc; font-size: 13px; line-height: 1.8; margin-bottom: 18px; }
+      .import-progress-bar { height: 10px; border-radius: 999px; background: rgba(17, 22, 30, 0.92); border: 1px solid rgba(86, 101, 124, 0.28); overflow: hidden; }
+      .import-progress-fill { display: block; height: 100%; width: 0%; border-radius: inherit; background: linear-gradient(90deg, #2dd4a8, #5eead4); box-shadow: 0 0 18px rgba(45, 212, 168, 0.32); transition: width 0.28s ease; }
+      .import-progress-card[data-mode="warning"] .import-progress-fill { background: linear-gradient(90deg, #f59e0b, #fbbf24); box-shadow: 0 0 18px rgba(251, 191, 36, 0.28); }
+      .import-progress-meta { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-top: 14px; }
+      .import-progress-step { color: #c4cdd9; font-size: 12px; }
+      .import-progress-action { border: none; border-radius: 12px; padding: 10px 14px; font-size: 12px; font-weight: 700; color: #07120d; background: linear-gradient(135deg, #2dd4a8, #5eead4); cursor: pointer; display: none; }
+      .import-progress-action.show { display: inline-flex; align-items: center; justify-content: center; }
       @media (max-width: 860px) { .settings-hub-modal { width: calc(100vw - 20px); max-height: 92vh; } .settings-hub-head, .settings-hub-body, .settings-hub-footer, .settings-hub-tabs { padding-left: 18px; padding-right: 18px; } .settings-hub-panel, .settings-field-grid, .settings-info-grid { grid-template-columns: 1fr; } .settings-hub-footer { flex-direction: column; align-items: flex-start; } }
     `;
     document.head.appendChild(style);
+  }
+
+  function ensureImportProgressUI() {
+    if (document.getElementById('import-progress-overlay')) return;
+    const previewPanel = document.getElementById('preview-panel');
+    if (!previewPanel) return;
+    previewPanel.insertAdjacentHTML('beforeend', `
+      <div class="import-progress-overlay" id="import-progress-overlay">
+        <div class="import-progress-card" id="import-progress-card" data-mode="loading">
+          <div class="import-progress-eyebrow" id="import-progress-eyebrow">Import Pipeline</div>
+          <div class="import-progress-title" id="import-progress-title">正在导入内容</div>
+          <div class="import-progress-detail" id="import-progress-detail">读取 Markdown 与配图资源…</div>
+          <div class="import-progress-bar"><span class="import-progress-fill" id="import-progress-fill"></span></div>
+          <div class="import-progress-meta">
+            <span class="import-progress-step" id="import-progress-step">准备开始</span>
+            <button class="import-progress-action" id="import-progress-action" onclick="handleImportProgressAction()"></button>
+          </div>
+        </div>
+      </div>
+    `);
   }
 
   function injectSettingsHubMarkup() {
@@ -247,17 +322,31 @@
       settingsBtn.textContent = '设置中心';
       settingsBtn.title = '打开统一设置中心';
     }
-    if (!center.querySelector('[data-role="import-bundle"]')) {
-      const importBtn = document.createElement('button');
+    const helpBtn = Array.from(center.querySelectorAll('.toolbar-btn')).find((btn) => (btn.getAttribute('onclick') || '').includes('openHelp'));
+
+    let folderBtn = center.querySelector('[data-role="import-folder"]');
+    if (!folderBtn) {
+      folderBtn = document.createElement('button');
+      folderBtn.className = 'toolbar-btn';
+      folderBtn.dataset.role = 'import-folder';
+      if (helpBtn) center.insertBefore(folderBtn, helpBtn);
+      else center.appendChild(folderBtn);
+    }
+    folderBtn.textContent = '导入目录';
+    folderBtn.title = '导入整个文章目录（推荐）';
+    folderBtn.onclick = function () { window.triggerImportFolder(); };
+
+    let importBtn = center.querySelector('[data-role="import-bundle"]');
+    if (!importBtn) {
+      importBtn = document.createElement('button');
       importBtn.className = 'toolbar-btn';
       importBtn.dataset.role = 'import-bundle';
-      importBtn.textContent = '导入';
-      importBtn.title = '导入 Markdown 文档和配图';
-      importBtn.onclick = function () { window.triggerImportBundle(); };
-      const helpBtn = Array.from(center.querySelectorAll('.toolbar-btn')).find((btn) => (btn.getAttribute('onclick') || '').includes('openHelp'));
       if (helpBtn) center.insertBefore(importBtn, helpBtn);
       else center.appendChild(importBtn);
     }
+    importBtn.textContent = '导入文件';
+    importBtn.title = '导入单个 Markdown 文件或单独图片';
+    importBtn.onclick = function () { window.triggerImportBundle(); };
   }
 
   function bindAutoSyncEvents() {
@@ -268,12 +357,13 @@
       scheduleAutoImageSync('input', { showToastOnStart: false, showToastOnSuccess: false, showToastOnBlocked: false }, 700);
     });
     ta.addEventListener('paste', function () {
-      scheduleAutoImageSync('paste', { showToastOnStart: true, showToastOnSuccess: true, showToastOnBlocked: true }, 650);
+      scheduleAutoImageSync('paste', { showToastOnStart: true, showToastOnSuccess: true, showToastOnBlocked: true, showProgressOverlay: true }, 650);
     });
   }
 
   function initSettingsHub() {
     ensureImportInputs();
+    ensureImportProgressUI();
     if (!document.getElementById(HUB_OVERLAY_ID)) {
       injectSettingsHubStyles();
       injectSettingsHubMarkup();
@@ -353,7 +443,9 @@
 
     const importStatus = document.getElementById('import-source-status');
     if (importStatus) {
-      importStatus.textContent = IMPORT_STATE.markdownName ? `${IMPORT_STATE.markdownName}${IMPORT_STATE.importedAt ? ' · ' + IMPORT_STATE.importedAt : ''}` : '还没有导入文档';
+      importStatus.textContent = IMPORT_STATE.markdownName
+        ? `${IMPORT_STATE.markdownName}${IMPORT_STATE.markdownDir ? ' · ' + IMPORT_STATE.markdownDir : ''}${IMPORT_STATE.importedAt ? ' · ' + IMPORT_STATE.importedAt : ''}`
+        : '还没有导入文档';
     }
 
     const assetStatus = document.getElementById('import-asset-status');
@@ -365,7 +457,7 @@
       else if (AUTO_SYNC_STATE.phase === 'done' && AUTO_SYNC_STATE.uploaded) mediaSummary.textContent = `已自动同步 ${AUTO_SYNC_STATE.uploaded} 张图片，预览已更新`;
       else if ((AUTO_SYNC_STATE.phase === 'blocked' || AUTO_SYNC_STATE.phase === 'partial') && AUTO_SYNC_STATE.message) mediaSummary.textContent = AUTO_SYNC_STATE.message;
       else if (!localImages.length) mediaSummary.textContent = '当前正文没有本地图片';
-      else if (!unresolved) mediaSummary.textContent = `当前正文 ${localImages.length} 张本地图片，资源已就绪，可立即上传 OSS`;
+      else if (!unresolved) mediaSummary.textContent = `当前正文 ${localImages.length} 张本地图片，路径已解析，可立即上传 OSS`;
       else mediaSummary.textContent = `当前正文 ${localImages.length} 张本地图片，仍有 ${unresolved} 张缺少对应资源`;
     }
 
@@ -374,7 +466,7 @@
       if (AUTO_SYNC_STATE.phase === 'running') footerNote.textContent = '正在把正文里的本地图片同步到 OSS，完成后预览会自动刷新。';
       else if (AUTO_SYNC_STATE.phase === 'done' && AUTO_SYNC_STATE.uploaded) footerNote.textContent = '最近一次内容变更已经触发自动上传，正文里的本地图片已替换成 OSS 链接。';
       else if (localImages.length && unresolved === 0 && isCompleteOSSConfig(oss)) footerNote.textContent = '检测到正文中有本地图片，只要内容导入完成或再次粘贴，就会立即开始同步到 OSS。';
-      else if (localImages.length && unresolved > 0) footerNote.textContent = '检测到正文里还有本地图片，但部分图片没有找到对应资源。建议先导入 Markdown 所在目录。';
+      else if (localImages.length && unresolved > 0) footerNote.textContent = '检测到正文里还有本地图片，但部分图片没有找到对应资源。多层目录场景建议直接导入整篇文章目录，而不是只导入单个 Markdown 文件。';
       else footerNote.textContent = '当前是本地模式，敏感配置仍存放在浏览器本地。多人部署时建议迁移到服务端加密存储。';
     }
 
@@ -399,6 +491,67 @@
     log.innerHTML = '';
     if (note) appendOSSLog('info', note);
   }
+
+  function renderImportProgressUI() {
+    ensureImportProgressUI();
+    const overlay = document.getElementById('import-progress-overlay');
+    const card = document.getElementById('import-progress-card');
+    const title = document.getElementById('import-progress-title');
+    const detail = document.getElementById('import-progress-detail');
+    const fill = document.getElementById('import-progress-fill');
+    const step = document.getElementById('import-progress-step');
+    const action = document.getElementById('import-progress-action');
+    if (!overlay || !card || !title || !detail || !fill || !step || !action) return;
+
+    if (!IMPORT_PIPELINE_STATE.active) {
+      overlay.classList.remove('active');
+      action.classList.remove('show');
+      return;
+    }
+
+    overlay.classList.add('active');
+    card.dataset.mode = IMPORT_PIPELINE_STATE.mode || 'loading';
+    title.textContent = IMPORT_PIPELINE_STATE.title || '正在导入内容';
+    detail.textContent = IMPORT_PIPELINE_STATE.detail || '请稍候…';
+    fill.style.width = `${Math.max(0, Math.min(100, IMPORT_PIPELINE_STATE.progress || 0))}%`;
+    step.textContent = IMPORT_PIPELINE_STATE.progress >= 100 ? '已完成' : `${Math.round(IMPORT_PIPELINE_STATE.progress || 0)}%`;
+    action.textContent = IMPORT_PIPELINE_STATE.actionLabel || '';
+    action.classList.toggle('show', !!IMPORT_PIPELINE_STATE.action);
+  }
+
+  function setImportPipelineState(nextState) {
+    clearTimeout(importOverlayTimer);
+    Object.assign(IMPORT_PIPELINE_STATE, nextState || {});
+    renderImportProgressUI();
+  }
+
+  function hideImportPipeline(delayMs) {
+    clearTimeout(importOverlayTimer);
+    const close = function () {
+      IMPORT_PIPELINE_STATE.active = false;
+      IMPORT_PIPELINE_STATE.mode = 'idle';
+      IMPORT_PIPELINE_STATE.title = '';
+      IMPORT_PIPELINE_STATE.detail = '';
+      IMPORT_PIPELINE_STATE.progress = 0;
+      IMPORT_PIPELINE_STATE.action = '';
+      IMPORT_PIPELINE_STATE.actionLabel = '';
+      renderImportProgressUI();
+    };
+    if (!delayMs) close();
+    else importOverlayTimer = setTimeout(close, delayMs);
+  }
+
+  window.handleImportProgressAction = function () {
+    if (IMPORT_PIPELINE_STATE.action === 'import-folder') {
+      window.triggerImportFolder();
+    } else if (IMPORT_PIPELINE_STATE.action === 'open-media-settings') {
+      window.openSettings('media');
+    } else if (IMPORT_PIPELINE_STATE.action === 'retry-sync') {
+      syncLocalImagesToOSS('manual-retry', { showToastOnStart: true, showToastOnSuccess: true, showToastOnBlocked: true, showProgressOverlay: true }).catch((err) => {
+        window.showToast(err.message || '重试同步失败');
+      });
+    }
+  };
 
   function setAutoSyncState(nextState) {
     Object.assign(AUTO_SYNC_STATE, nextState || {});
@@ -431,6 +584,7 @@
       showToastOnBlocked: false,
       openSettingsOnBlocked: false,
       throwOnBlocked: false,
+      showProgressOverlay: false,
     }, options || {});
 
     clearTimeout(autoSyncTimer);
@@ -446,6 +600,7 @@
         if (reason === 'import' || AUTO_SYNC_STATE.phase === 'blocked' || AUTO_SYNC_STATE.phase === 'idle') {
           setAutoSyncState({ phase: 'idle', total: 0, completed: 0, uploaded: 0, failed: 0, missing: 0, message: '' });
         }
+        if (opts.showProgressOverlay) hideImportPipeline(0);
         return { md: md, uploadedCount: 0, missingCount: 0, failedCount: 0 };
       }
 
@@ -453,6 +608,17 @@
       if (!isCompleteOSSConfig(cfg)) {
         const msg = `检测到 ${plan.localImages.length} 张本地图片，但图床还没有配置完整`;
         setAutoSyncState({ phase: 'blocked', total: plan.localImages.length, completed: 0, uploaded: 0, failed: 0, missing: plan.localImages.length, message: msg });
+        if (opts.showProgressOverlay) {
+          setImportPipelineState({
+            active: true,
+            mode: 'warning',
+            title: '等待图床配置',
+            detail: `${msg}。补全 OSS 配置后，我会继续把这些图片上传上去。`,
+            progress: 26,
+            action: 'open-media-settings',
+            actionLabel: '去配置图床',
+          });
+        }
         if (opts.openSettingsOnBlocked) window.openSettings('media');
         if (opts.showToastOnBlocked) window.showToast(msg);
         if (opts.throwOnBlocked) throw new Error('检测到本地图片，请先在设置中心完成图床配置');
@@ -464,6 +630,17 @@
         setAutoSyncState({ phase: 'blocked', total: plan.localImages.length, completed: 0, uploaded: 0, failed: 0, missing: plan.missing.length, message: msg });
         clearOSSLog('正文里有本地图片，但当前资源库里没有找到可上传的对应文件');
         plan.missing.slice(0, 6).forEach((src) => appendOSSLog('warning', `未找到资源：${src}`));
+        if (opts.showProgressOverlay) {
+          setImportPipelineState({
+            active: true,
+            mode: 'warning',
+            title: '缺少图片资源',
+            detail: `${msg}。如果你刚刚只导入了 .md 文件，浏览器无法自动读取同目录图片，请改用“导入整个文章目录”。`,
+            progress: 38,
+            action: 'import-folder',
+            actionLabel: '导入文章目录',
+          });
+        }
         if (opts.openSettingsOnBlocked) window.openSettings('media');
         if (opts.showToastOnBlocked) window.showToast(msg);
         if (opts.throwOnBlocked) throw new Error('正文里还有本地图片，但没有找到对应文件。请先导入 Markdown 所在目录或配图。');
@@ -473,6 +650,17 @@
       clearOSSLog(`检测到 ${plan.uploadQueue.length} 张本地图片，开始上传 OSS`);
       if (opts.showToastOnStart) window.showToast(`检测到 ${plan.uploadQueue.length} 张图片，开始上传 OSS…`);
       setAutoSyncState({ phase: 'running', total: plan.uploadQueue.length, completed: 0, uploaded: 0, failed: 0, missing: plan.missing.length, message: `正在上传 0/${plan.uploadQueue.length}` });
+      if (opts.showProgressOverlay) {
+        setImportPipelineState({
+          active: true,
+          mode: 'loading',
+          title: '正在上传图片到 OSS',
+          detail: `已识别到 ${plan.uploadQueue.length} 张本地图片，正在逐张上传并替换正文链接。`,
+          progress: 42,
+          action: '',
+          actionLabel: '',
+        });
+      }
 
       let updatedMd = md;
       let uploadedCount = 0;
@@ -497,6 +685,20 @@
           missing: plan.missing.length,
           message: `正在上传 ${uploadedCount + failedCount}/${plan.uploadQueue.length}`,
         });
+        if (opts.showProgressOverlay) {
+          const ratio = (uploadedCount + failedCount) / Math.max(plan.uploadQueue.length, 1);
+          setImportPipelineState({
+            active: true,
+            mode: failedCount ? 'warning' : 'loading',
+            title: failedCount ? '图片上传中，出现部分失败' : '正在上传图片到 OSS',
+            detail: failedCount
+              ? `已完成 ${uploadedCount + failedCount}/${plan.uploadQueue.length} 张，其中 ${failedCount} 张失败。`
+              : `已完成 ${uploadedCount + failedCount}/${plan.uploadQueue.length} 张，马上刷新预览。`,
+            progress: 42 + ratio * 46,
+            action: '',
+            actionLabel: '',
+          });
+        }
       }
 
       if (updatedMd !== ta.value) {
@@ -518,6 +720,31 @@
         missing: plan.missing.length,
         message: message,
       });
+
+      if (opts.showProgressOverlay) {
+        if (hasBlockingIssues) {
+          setImportPipelineState({
+            active: true,
+            mode: 'warning',
+            title: '图片同步未完全完成',
+            detail: message + '。你可以补充图片资源后继续导入，或保存图床配置后重新同步。',
+            progress: uploadedCount ? 92 : 56,
+            action: plan.missing.length ? 'import-folder' : 'retry-sync',
+            actionLabel: plan.missing.length ? '继续导入图片' : '重试同步',
+          });
+        } else {
+          setImportPipelineState({
+            active: true,
+            mode: 'success',
+            title: '导入完成',
+            detail: `Markdown 与 ${uploadedCount} 张图片已经同步完成，正在展示最新预览。`,
+            progress: 100,
+            action: '',
+            actionLabel: '',
+          });
+          hideImportPipeline(900);
+        }
+      }
 
       if (uploadedCount && opts.showToastOnSuccess) window.showToast(message);
       else if (!uploadedCount && hasBlockingIssues && opts.showToastOnBlocked) window.showToast(message);
@@ -604,7 +831,7 @@
   saveOSSSettings = window.saveOSSSettings = function () {
     const cfg = window.getOSSConfigFromForm();
     const saved = window.persistOSSSettings(cfg, true);
-    scheduleAutoImageSync('oss-settings-saved', { showToastOnStart: true, showToastOnSuccess: true, showToastOnBlocked: false }, 120);
+    scheduleAutoImageSync('oss-settings-saved', { showToastOnStart: true, showToastOnSuccess: true, showToastOnBlocked: false, showProgressOverlay: true }, 120);
     return saved;
   };
 
@@ -621,10 +848,21 @@
   async function importMarkdownBundle(fileList, mode) {
     const files = Array.from(fileList || []);
     let importedMarkdownContent = '';
+    let importedMarkdownPath = '';
     if (!files.length) return;
+    setImportPipelineState({
+      active: true,
+      mode: 'loading',
+      title: mode === 'folder' ? '正在读取文章目录' : '正在导入 Markdown',
+      detail: mode === 'folder' ? '扫描目录中的 Markdown 与配图资源…' : '读取 Markdown 文件与已选择的配图资源…',
+      progress: 8,
+      action: '',
+      actionLabel: '',
+    });
     const markdownFiles = files.filter(isMarkdownFile);
     const imageFiles = files.filter(isImageLikeFile);
     if (!markdownFiles.length && !imageFiles.length) {
+      hideImportPipeline(0);
       window.showToast('请选择 Markdown 文件或配图资源');
       return;
     }
@@ -638,16 +876,36 @@
       const mdFile = markdownFiles[0];
       const content = await mdFile.text();
       importedMarkdownContent = content;
+      importedMarkdownPath = normalizeAssetPath(mdFile.webkitRelativePath || mdFile.name || '');
       const ta = document.getElementById('markdown-input');
       ta.value = content;
       window.immediatePushHistory(content);
       IMPORT_STATE.markdownName = mdFile.name;
+      IMPORT_STATE.markdownRelativePath = importedMarkdownPath;
+      IMPORT_STATE.markdownDir = getDirectoryPath(importedMarkdownPath);
       IMPORT_STATE.importedAt = new Date().toLocaleString('zh-CN');
       IMPORT_STATE.sourceMode = mode;
-      window.updatePreview();
+      setImportPipelineState({
+        active: true,
+        mode: 'loading',
+        title: 'Markdown 已读入',
+        detail: imageFiles.length ? `正文已加载，正在索引 ${imageFiles.length} 张图片资源…` : '正文已加载，正在检查是否需要同步本地图片…',
+        progress: imageFiles.length ? 18 : 14,
+        action: '',
+        actionLabel: '',
+      });
     } else {
       IMPORT_STATE.importedAt = new Date().toLocaleString('zh-CN');
       if (mode !== 'folder') IMPORT_STATE.sourceMode = 'assets';
+      setImportPipelineState({
+        active: true,
+        mode: 'loading',
+        title: '图片资源已导入',
+        detail: `已索引 ${imageFiles.length} 张图片资源，正在匹配正文里的本地图片…`,
+        progress: 16,
+        action: '',
+        actionLabel: '',
+      });
     }
     syncSettingsHubStatus();
     const summary = [];
@@ -658,12 +916,38 @@
     const currentMarkdown = markdownFiles.length > 0 ? importedMarkdownContent : ((document.getElementById('markdown-input') || {}).value || '');
     const pendingImages = getPendingLocalImageSources(currentMarkdown);
     if (!pendingImages.length || !shouldTryAutoSync) {
+      window.updatePreview();
+      setImportPipelineState({
+        active: true,
+        mode: 'success',
+        title: '导入完成',
+        detail: `${importedLabel}，正文中没有需要额外同步的本地图片。`,
+        progress: 100,
+        action: '',
+        actionLabel: '',
+      });
+      hideImportPipeline(700);
       window.showToast(importedLabel);
       return;
     }
     if (isCompleteOSSConfig(window.getOSSConfig())) {
+      setImportPipelineState({
+        active: true,
+        mode: 'loading',
+        title: '开始同步图片',
+        detail: `${importedLabel}，检测到 ${pendingImages.length} 张本地图片，马上上传到 OSS。`,
+        progress: 24,
+        action: '',
+        actionLabel: '',
+      });
       window.showToast(`${importedLabel}，开始同步图片到 OSS…`);
-      await syncLocalImagesToOSS('import', { showToastOnStart: false, showToastOnSuccess: true, showToastOnBlocked: true, openSettingsOnBlocked: false });
+      await syncLocalImagesToOSS('import', {
+        showToastOnStart: false,
+        showToastOnSuccess: true,
+        showToastOnBlocked: true,
+        openSettingsOnBlocked: false,
+        showProgressOverlay: true,
+      });
     } else {
       setAutoSyncState({
         phase: 'blocked',
@@ -673,6 +957,15 @@
         failed: 0,
         missing: pendingImages.length,
         message: `已导入正文，检测到 ${pendingImages.length} 张本地图片，等待补全 OSS 配置后自动上传`,
+      });
+      setImportPipelineState({
+        active: true,
+        mode: 'warning',
+        title: '已导入正文，等待上传图片',
+        detail: `检测到 ${pendingImages.length} 张本地图片，但图床配置还不完整。补全配置后会自动继续上传，再生成预览。`,
+        progress: 22,
+        action: 'open-media-settings',
+        actionLabel: '去配置图床',
       });
       window.showToast(`${importedLabel}，检测到本地图片，配置图床后会自动上传`);
     }
