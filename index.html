@@ -2636,6 +2636,30 @@
         return { accessKey: '', secretKey: '', bucket: '', endpoint: '', customDomain: '', prefix: '' };
     }
 
+    function getOSSConfigFromForm() {
+        let accessKeyEl = document.getElementById('oss-access-key');
+        let secretKeyEl = document.getElementById('oss-secret-key');
+        let bucketEl = document.getElementById('oss-bucket');
+        let endpointEl = document.getElementById('oss-endpoint');
+        let customDomainEl = document.getElementById('oss-custom-domain');
+        let prefixEl = document.getElementById('oss-prefix');
+
+        return {
+            accessKey: accessKeyEl ? accessKeyEl.value.trim() : '',
+            secretKey: secretKeyEl ? secretKeyEl.value.trim() : '',
+            bucket: bucketEl ? bucketEl.value.trim() : '',
+            endpoint: endpointEl ? endpointEl.value.trim() : '',
+            customDomain: customDomainEl ? customDomainEl.value.trim() : '',
+            prefix: prefixEl ? prefixEl.value.trim() : '',
+        };
+    }
+
+    function persistOSSSettings(cfg, showSavedToast = true) {
+        localStorage.setItem(OSS_STORAGE_KEY, JSON.stringify(cfg));
+        if (showSavedToast) showToast('OSS 配置已保存');
+        return cfg;
+    }
+
     function openOSSSettings() {
         let c = getOSSConfig();
         document.getElementById('oss-access-key').value = c.accessKey || '';
@@ -2652,16 +2676,8 @@
     }
 
     function saveOSSSettings() {
-        let cfg = {
-            accessKey: document.getElementById('oss-access-key').value.trim(),
-            secretKey: document.getElementById('oss-secret-key').value.trim(),
-            bucket: document.getElementById('oss-bucket').value.trim(),
-            endpoint: document.getElementById('oss-endpoint').value.trim(),
-            customDomain: document.getElementById('oss-custom-domain').value.trim(),
-            prefix: document.getElementById('oss-prefix').value.trim(),
-        };
-        localStorage.setItem(OSS_STORAGE_KEY, JSON.stringify(cfg));
-        showToast('OSS 配置已保存');
+        let cfg = getOSSConfigFromForm();
+        return persistOSSSettings(cfg, true);
     }
 
     async function hmacSHA1Base64(key, message) {
@@ -2673,18 +2689,18 @@
         return btoa(String.fromCharCode(...new Uint8Array(sig)));
     }
 
-    async function uploadFileToOSS(file) {
-        let c = getOSSConfig();
+    async function uploadFileToOSS(file, cfg) {
+        let c = cfg || getOSSConfig();
         if (!c.accessKey || !c.secretKey || !c.bucket || !c.endpoint) {
             throw new Error('OSS 配置不完整，请先完善设置');
         }
         let prefix = c.prefix ? c.prefix.replace(/\/+$/, '') + '/' : '';
         let ext = file.name.split('.').pop();
         let objKey = prefix + Date.now() + '_' + Math.random().toString(36).slice(2, 7) + '.' + ext;
-        let date = new Date().toUTCString();
+        let ossDate = new Date().toUTCString();
         let contentType = file.type || 'application/octet-stream';
         let canonResource = '/' + c.bucket + '/' + objKey;
-        let stringToSign = 'PUT\n\n' + contentType + '\n' + date + '\n' + canonResource;
+        let stringToSign = 'PUT\n\n' + contentType + '\n' + ossDate + '\n' + 'x-oss-date:' + ossDate + '\n' + canonResource;
         let sig = await hmacSHA1Base64(c.secretKey, stringToSign);
         let auth = 'OSS ' + c.accessKey + ':' + sig;
         let endpoint = c.endpoint.replace(/^https?:\/\//, '');
@@ -2693,7 +2709,7 @@
             method: 'PUT',
             headers: {
                 'Content-Type': contentType,
-                'Date': date,
+                'x-oss-date': ossDate,
                 'Authorization': auth,
             },
             body: file,
@@ -2715,6 +2731,8 @@
         let log = document.getElementById('oss-upload-log');
         log.style.display = 'block';
         log.innerHTML = '';
+        let currentCfg = getOSSConfigFromForm();
+        persistOSSSettings(currentCfg, false);
 
         let ta = document.getElementById('markdown-input');
         let md = ta.value;
@@ -2723,7 +2741,7 @@
         for (let file of files) {
             log.innerHTML += `⏳ 正在上传 ${file.name}…<br>`;
             try {
-                let ossUrl = await uploadFileToOSS(file);
+                let ossUrl = await uploadFileToOSS(file, currentCfg);
                 // Replace matching local paths (exact filename match)
                 let fname = file.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
                 // Match: ![anything](any path ending with filename)
@@ -2750,7 +2768,7 @@
             updatePreview();
             showToast('已替换 ' + replaced + ' 处图片路径为 OSS 链接');
         }
-        saveOSSSettings();
+        persistOSSSettings(currentCfg, false);
         log.scrollTop = log.scrollHeight;
     }
 
@@ -3566,5 +3584,6 @@ AI 不是替代你，而是让你变成更好的自己。
     loadExample();
     syncPreviewThemeFromToolbar();
     </script>
+    <script src="./workspace-enhancements.js"></script>
 </body>
 </html>
