@@ -945,7 +945,7 @@
             <h3>☁ 阿里云 OSS 图片上传</h3>
             <p style="font-size:13px;color:#888;margin:0 0 20px 0;line-height:1.7;">
                 配置后，可将本地图片上传到 OSS 并自动替换 Markdown 中的路径。<br>
-                上传时请确保 Bucket 已开启 CORS（允许来源 <code style="color:#2dd4a8">*</code>，允许方法 PUT/GET）。<br>
+                上传时请确保 Bucket 已开启 CORS（允许来源 <code style="color:#2dd4a8">*</code>，允许方法 PUT/GET/OPTIONS，并放行 <code style="color:#2dd4a8">Authorization</code>、<code style="color:#2dd4a8">x-oss-date</code>、<code style="color:#2dd4a8">x-oss-content-sha256</code>、<code style="color:#2dd4a8">Content-Type</code>）。<br>
                 <strong style="color:#e879f9;">注意：关于能否复制到微信 →</strong> 粘贴到微信编辑器时，微信会自动将 HTTPS 图片下载并转存到微信 CDN，因此 OSS 图片在微信编辑器中可以正常显示和发布。
             </p>
             <div class="setting-group">
@@ -2689,6 +2689,95 @@
         return btoa(String.fromCharCode(...new Uint8Array(sig)));
     }
 
+    function toHex(bufferLike) {
+        return Array.from(new Uint8Array(bufferLike)).map((b) => b.toString(16).padStart(2, '0')).join('');
+    }
+
+    async function sha256HexFromString(value) {
+        const data = new TextEncoder().encode(String(value == null ? '' : value));
+        return toHex(await crypto.subtle.digest('SHA-256', data));
+    }
+
+    async function sha256HexFromBlob(blob) {
+        return toHex(await crypto.subtle.digest('SHA-256', await blob.arrayBuffer()));
+    }
+
+    async function hmacSHA256Bytes(key, message) {
+        const rawKey = typeof key === 'string' ? new TextEncoder().encode(key) : key;
+        const cryptoKey = await crypto.subtle.importKey(
+            'raw', rawKey, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
+        );
+        return new Uint8Array(await crypto.subtle.sign('HMAC', cryptoKey, new TextEncoder().encode(message)));
+    }
+
+    async function hmacSHA256Hex(key, message) {
+        return toHex(await hmacSHA256Bytes(key, message));
+    }
+
+    function getOSSV4RegionFromEndpoint(endpoint) {
+        let host = String(endpoint || '').trim().replace(/^https?:\/\//i, '').replace(/\/.*$/, '');
+        let match = host.match(/(?:^|\.)oss-([^.]+?)(?:-internal)?(?:\.|$)/i);
+        if (!match) {
+            throw new Error('无法从 Endpoint 解析地域，请使用标准 OSS Endpoint，例如 oss-cn-beijing.aliyuncs.com');
+        }
+        return match[1];
+    }
+
+    function encodeRFC3986(value) {
+        return encodeURIComponent(value).replace(/[!'()*]/g, function(char) {
+            return '%' + char.charCodeAt(0).toString(16).toUpperCase();
+        });
+    }
+
+    function buildOSSV4CanonicalUri(bucket, objectKey) {
+        let parts = [bucket].concat(String(objectKey || '').split('/').filter(Boolean));
+        return '/' + parts.map(encodeRFC3986).join('/');
+    }
+
+    async function createOSSV4Authorization(cfg, objectKey, contentType, payloadHash) {
+        let now = new Date();
+        let year = now.getUTCFullYear();
+        let month = String(now.getUTCMonth() + 1).padStart(2, '0');
+        let day = String(now.getUTCDate()).padStart(2, '0');
+        let hour = String(now.getUTCHours()).padStart(2, '0');
+        let minute = String(now.getUTCMinutes()).padStart(2, '0');
+        let second = String(now.getUTCSeconds()).padStart(2, '0');
+        let shortDate = '' + year + month + day;
+        let isoDate = shortDate + 'T' + hour + minute + second + 'Z';
+        let region = getOSSV4RegionFromEndpoint(cfg.endpoint);
+        let scope = shortDate + '/' + region + '/oss/aliyun_v4_request';
+        let canonicalHeadersMap = {
+            'content-type': contentType,
+            'x-oss-content-sha256': payloadHash,
+            'x-oss-date': isoDate,
+        };
+        if (cfg.securityToken) canonicalHeadersMap['x-oss-security-token'] = String(cfg.securityToken).trim();
+        let canonicalHeaders = Object.keys(canonicalHeadersMap).sort().map((key) => key + ':' + canonicalHeadersMap[key]).join('\n') + '\n';
+        let canonicalRequest = [
+            'PUT',
+            buildOSSV4CanonicalUri(cfg.bucket, objectKey),
+            '',
+            canonicalHeaders,
+            payloadHash
+        ].join('\n');
+        let stringToSign = [
+            'OSS4-HMAC-SHA256',
+            isoDate,
+            scope,
+            await sha256HexFromString(canonicalRequest)
+        ].join('\n');
+        let kDate = await hmacSHA256Bytes('aliyun_v4' + cfg.secretKey, shortDate);
+        let kRegion = await hmacSHA256Bytes(kDate, region);
+        let kService = await hmacSHA256Bytes(kRegion, 'oss');
+        let signingKey = await hmacSHA256Bytes(kService, 'aliyun_v4_request');
+        let signature = await hmacSHA256Hex(signingKey, stringToSign);
+        return {
+            authorization: 'OSS4-HMAC-SHA256 Credential=' + cfg.accessKey + '/' + scope + ', Signature=' + signature,
+            isoDate: isoDate,
+            payloadHash: payloadHash,
+        };
+    }
+
     async function uploadFileToOSS(file, cfg) {
         let c = cfg || getOSSConfig();
         if (!c.accessKey || !c.secretKey || !c.bucket || !c.endpoint) {
@@ -2697,21 +2786,21 @@
         let prefix = c.prefix ? c.prefix.replace(/\/+$/, '') + '/' : '';
         let ext = file.name.split('.').pop();
         let objKey = prefix + Date.now() + '_' + Math.random().toString(36).slice(2, 7) + '.' + ext;
-        let ossDate = new Date().toUTCString();
         let contentType = file.type || 'application/octet-stream';
-        let canonResource = '/' + c.bucket + '/' + objKey;
-        let stringToSign = 'PUT\n\n' + contentType + '\n' + ossDate + '\n' + 'x-oss-date:' + ossDate + '\n' + canonResource;
-        let sig = await hmacSHA1Base64(c.secretKey, stringToSign);
-        let auth = 'OSS ' + c.accessKey + ':' + sig;
+        let payloadHash = await sha256HexFromBlob(file);
+        let signed = await createOSSV4Authorization(c, objKey, contentType, payloadHash);
         let endpoint = c.endpoint.replace(/^https?:\/\//, '');
         let url = 'https://' + c.bucket + '.' + endpoint + '/' + objKey;
+        let headers = {
+            'Content-Type': contentType,
+            'x-oss-content-sha256': signed.payloadHash,
+            'x-oss-date': signed.isoDate,
+            'Authorization': signed.authorization,
+        };
+        if (c.securityToken) headers['x-oss-security-token'] = String(c.securityToken).trim();
         let resp = await fetch(url, {
             method: 'PUT',
-            headers: {
-                'Content-Type': contentType,
-                'x-oss-date': ossDate,
-                'Authorization': auth,
-            },
+            headers: headers,
             body: file,
         });
         if (!resp.ok) {

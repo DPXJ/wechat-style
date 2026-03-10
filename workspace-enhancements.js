@@ -83,6 +83,93 @@
     return !!(cfg && cfg.accessKey && cfg.secretKey && cfg.bucket && cfg.endpoint);
   }
 
+  function toHex(bufferLike) {
+    return Array.from(new Uint8Array(bufferLike)).map((b) => b.toString(16).padStart(2, '0')).join('');
+  }
+
+  async function sha256HexFromString(value) {
+    const data = new TextEncoder().encode(String(value == null ? '' : value));
+    return toHex(await crypto.subtle.digest('SHA-256', data));
+  }
+
+  async function sha256HexFromBlob(blob) {
+    return toHex(await crypto.subtle.digest('SHA-256', await blob.arrayBuffer()));
+  }
+
+  async function hmacSHA256Bytes(key, message) {
+    const rawKey = typeof key === 'string' ? new TextEncoder().encode(key) : key;
+    const cryptoKey = await crypto.subtle.importKey('raw', rawKey, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+    return new Uint8Array(await crypto.subtle.sign('HMAC', cryptoKey, new TextEncoder().encode(message)));
+  }
+
+  async function hmacSHA256Hex(key, message) {
+    return toHex(await hmacSHA256Bytes(key, message));
+  }
+
+  function getOSSV4RegionFromEndpoint(endpoint) {
+    const host = String(endpoint || '').trim().replace(/^https?:\/\//i, '').replace(/\/.*$/, '');
+    const match = host.match(/(?:^|\.)oss-([^.]+?)(?:-internal)?(?:\.|$)/i);
+    if (!match) {
+      throw new Error('无法从 Endpoint 解析地域，请使用标准 OSS Endpoint，例如 oss-cn-beijing.aliyuncs.com');
+    }
+    return match[1];
+  }
+
+  function encodeRFC3986(value) {
+    return encodeURIComponent(value).replace(/[!'()*]/g, function (char) {
+      return '%' + char.charCodeAt(0).toString(16).toUpperCase();
+    });
+  }
+
+  function buildOSSV4CanonicalUri(bucket, objectKey) {
+    const parts = [bucket].concat(String(objectKey || '').split('/').filter(Boolean));
+    return '/' + parts.map(encodeRFC3986).join('/');
+  }
+
+  async function createOSSV4Authorization(cfg, objectKey, contentType, payloadHash) {
+    const now = new Date();
+    const y = now.getUTCFullYear();
+    const m = String(now.getUTCMonth() + 1).padStart(2, '0');
+    const d = String(now.getUTCDate()).padStart(2, '0');
+    const hh = String(now.getUTCHours()).padStart(2, '0');
+    const mm = String(now.getUTCMinutes()).padStart(2, '0');
+    const ss = String(now.getUTCSeconds()).padStart(2, '0');
+    const shortDate = `${y}${m}${d}`;
+    const isoDate = `${shortDate}T${hh}${mm}${ss}Z`;
+    const region = getOSSV4RegionFromEndpoint(cfg.endpoint);
+    const scope = `${shortDate}/${region}/oss/aliyun_v4_request`;
+    const canonicalHeadersMap = {
+      'content-type': contentType,
+      'x-oss-content-sha256': payloadHash,
+      'x-oss-date': isoDate,
+    };
+    if (cfg.securityToken) canonicalHeadersMap['x-oss-security-token'] = String(cfg.securityToken).trim();
+    const canonicalHeaders = Object.keys(canonicalHeadersMap).sort().map((key) => `${key}:${canonicalHeadersMap[key]}`).join('\n') + '\n';
+    const canonicalRequest = [
+      'PUT',
+      buildOSSV4CanonicalUri(cfg.bucket, objectKey),
+      '',
+      canonicalHeaders,
+      payloadHash,
+    ].join('\n');
+    const stringToSign = [
+      'OSS4-HMAC-SHA256',
+      isoDate,
+      scope,
+      await sha256HexFromString(canonicalRequest),
+    ].join('\n');
+    const kDate = await hmacSHA256Bytes('aliyun_v4' + cfg.secretKey, shortDate);
+    const kRegion = await hmacSHA256Bytes(kDate, region);
+    const kService = await hmacSHA256Bytes(kRegion, 'oss');
+    const signingKey = await hmacSHA256Bytes(kService, 'aliyun_v4_request');
+    const signature = await hmacSHA256Hex(signingKey, stringToSign);
+    return {
+      authorization: `OSS4-HMAC-SHA256 Credential=${cfg.accessKey}/${scope}, Signature=${signature}`,
+      isoDate: isoDate,
+      payloadHash: payloadHash,
+    };
+  }
+
   function getLocalProfile() {
     try {
       const raw = localStorage.getItem(LOCAL_PROFILE_KEY);
@@ -305,7 +392,7 @@
       <div class="settings-overlay settings-hub-overlay" id="${HUB_OVERLAY_ID}" onclick="if(event.target===this)closeSettings()"><div class="settings-hub-modal"><div class="settings-hub-head"><div><div class="settings-eyebrow">Workspace Control</div><h3>设置中心</h3><p>把排版参数、AI、图床和账号状态收进一个工作台里。导入 Markdown 或粘贴带图内容后，会优先尝试把本地图片同步到 OSS，再刷新预览。</p></div><button class="settings-hub-close" onclick="closeSettings()" aria-label="关闭">×</button></div><div class="settings-hub-tabs"><button class="settings-hub-tab active" data-settings-tab="appearance" onclick="switchSettingsTab('appearance')">排版</button><button class="settings-hub-tab" data-settings-tab="ai" onclick="switchSettingsTab('ai')">AI</button><button class="settings-hub-tab" data-settings-tab="media" onclick="switchSettingsTab('media')">图床与导入</button><button class="settings-hub-tab" data-settings-tab="account" onclick="switchSettingsTab('account')">账号</button></div><div class="settings-hub-body">
         <section class="settings-hub-panel active" data-tab-panel="appearance"><div class="settings-card"><h4>基础观感</h4><p>在当前模板上做微调，适合快速收紧整篇文章的色彩与阅读氛围。</p><div class="setting-group"><label>主题色</label><div class="setting-row"><input type="color" id="s-accent" value="#2dd4a8" onchange="updateSetting()"><span class="setting-value" id="sv-accent">#2dd4a8</span></div></div><div class="setting-group"><label>正文背景</label><div class="setting-row"><input type="color" id="s-bg" value="#111111" onchange="updateSetting()"><span class="setting-value" id="sv-bg">#111111</span></div></div><div class="setting-group"><label>正文颜色</label><div class="setting-row"><input type="color" id="s-textcolor" value="#c8c8c8" onchange="updateSetting()"><span class="setting-value" id="sv-textcolor">#c8c8c8</span></div></div></div><div class="settings-card"><h4>节奏与密度</h4><p>这里更适合处理公众号里“正文挤不挤、读起来顺不顺”的问题。</p><div class="setting-group"><label>正文字号</label><div class="setting-row"><input type="range" id="s-fontsize" min="11" max="22" value="16" onchange="updateSetting()"><span class="setting-value" id="sv-fontsize">16px</span></div></div><div class="setting-group"><label>行高</label><div class="setting-row"><input type="range" id="s-lineheight" min="16" max="28" value="20" step="1" onchange="updateSetting()"><span class="setting-value" id="sv-lineheight">2.0</span></div></div><div class="setting-group"><label>段间距</label><div class="setting-row"><input type="range" id="s-paragap" min="8" max="24" value="16" step="2" onchange="updateSetting()"><span class="setting-value" id="sv-paragap">1.6em</span></div></div></div><div class="settings-card full"><h4>输出附加项</h4><p>控制复制给微信时要不要自动带上固定结尾区块。</p><div class="setting-group" style="margin-bottom:0;"><label style="display:flex;align-items:center;gap:10px;margin-bottom:0;"><input type="checkbox" id="s-show-footer" checked onchange="showFixedFooter=this.checked;updatePreview();"><span>复制到微信时保留固定结尾区块</span></label></div></div></section>
         <section class="settings-hub-panel" data-tab-panel="ai"><div class="settings-card"><h4>AI 配置</h4><p>用于 AI 优化和指令改写。现在还是本地模式，配置会保存在当前浏览器。</p><div class="settings-status-line"><strong>当前状态</strong><span id="ai-config-status">未配置</span></div><div class="setting-group"><label>使用服务</label><select id="ai-provider" onchange="toggleAICustomFields()"><option value="zhipu">智谱 GLM（只需 API Key）</option><option value="custom">自定义 OpenAI 兼容接口</option></select></div><div class="setting-group"><label id="ai-api-key-label">API Key</label><input type="password" id="ai-api-key" autocomplete="off" placeholder="输入你的 API Key"></div><div class="setting-group" id="ai-custom-fields" style="display:none;"><label>API 地址</label><input type="text" id="ai-api-url" placeholder="https://api.openai.com/v1/chat/completions"></div><div class="setting-group" id="ai-custom-model-wrap" style="display:none;"><label>模型</label><input type="text" id="ai-model" placeholder="gpt-4o"></div><div class="settings-actions"><button class="settings-primary-btn" onclick="saveAISettings()">保存 AI 配置</button></div></div><div class="settings-card"><h4>建议用法</h4><div class="settings-info-grid"><div class="settings-mini-card"><strong>AI 优化</strong><span>适合把普通 Markdown 快速重写成当前模板下更完整的排版稿。</span></div><div class="settings-mini-card"><strong>AI 指令</strong><span>更适合做局部修改，比如插入卡片、替换组件风格或补一句引导语。</span></div><div class="settings-mini-card"><strong>本地存储</strong><span>现在只是单文件版本，部署多人版前，建议把 API Key 改为服务端加密存储。</span></div><div class="settings-mini-card"><strong>后续升级</strong><span>如果你要加登录和团队协作，这里最适合先抽成独立配置服务。</span></div></div></div></section>
-        <section class="settings-hub-panel" data-tab-panel="media"><div class="settings-card"><h4>导入 Markdown 文档</h4><p>更接近真实使用场景：把 Markdown 和配图一起导入后，就立刻开始检查并上传本地图片，预览不必等到复制微信时才修正。</p><div class="settings-status-line"><strong>导入状态</strong><span id="import-source-status">还没有导入文档</span></div><div class="settings-status-line"><strong>资源库</strong><span id="import-asset-status">0 张图片已索引</span></div><div class="settings-status-line"><strong>正文检测</strong><span id="media-local-summary">当前正文没有本地图片</span></div><div class="settings-actions"><button class="settings-primary-btn" onclick="triggerImportBundle()">导入 Markdown + 图片</button><button class="settings-secondary-btn" onclick="triggerImportFolder()">导入整个文章目录</button></div><div class="settings-mini-note">如果正文里引用的是相对路径图片，建议直接导入整篇文章目录，自动匹配会更稳。</div></div><div class="settings-card"><h4>图床 / OSS 配置</h4><p>只要正文里检测到本地图片，系统会优先尝试即时上传到 OSS。手动上传按钮仍然保留，适合零星补图。</p><div class="settings-status-line"><strong>图床状态</strong><span id="oss-config-status">未配置</span></div><div class="settings-field-grid"><div class="setting-group"><label>AccessKeyId</label><input type="text" id="oss-access-key" placeholder="输入 AccessKeyId"></div><div class="setting-group"><label>AccessKeySecret</label><input type="password" id="oss-secret-key" autocomplete="off" placeholder="输入 AccessKeySecret"></div><div class="setting-group"><label>Bucket 名称</label><input type="text" id="oss-bucket" placeholder="如：wechat-assets"></div><div class="setting-group"><label>Endpoint</label><input type="text" id="oss-endpoint" placeholder="如：oss-cn-beijing.aliyuncs.com"></div><div class="setting-group"><label>自定义域名（可选）</label><input type="text" id="oss-custom-domain" placeholder="如：https://cdn.example.com"></div><div class="setting-group"><label>上传前缀（可选）</label><input type="text" id="oss-prefix" placeholder="如：articles/2026/"></div></div><div class="settings-actions"><button class="settings-primary-btn" onclick="saveOSSSettings()">保存图床配置</button><button class="settings-secondary-btn" onclick="triggerManualImageUpload()">手动上传图片</button></div><input type="file" id="oss-file-input" multiple accept="image/*" style="display:none" onchange="handleOSSUpload(this.files); this.value='';"><div class="settings-mini-note">浏览器直传时，Bucket 需要允许 PUT / GET / OPTIONS，并放行 Authorization、x-oss-date、Content-Type。</div><div id="oss-upload-log" class="settings-log"></div></div><div class="settings-card full"><h4>当前自动化策略</h4><div class="settings-info-grid"><div class="settings-mini-card"><strong>导入或粘贴后立即同步</strong><span>导入 Markdown、导入文章目录，或粘贴带图片的内容后，会优先检查正文里的本地图片并尝试上传 OSS。</span></div><div class="settings-mini-card"><strong>复制阶段只做兜底检查</strong><span>点击“复制到微信”时仍会再检查一遍，避免漏掉未同步的本地图片。</span></div></div></div></section>
+        <section class="settings-hub-panel" data-tab-panel="media"><div class="settings-card"><h4>导入 Markdown 文档</h4><p>更接近真实使用场景：把 Markdown 和配图一起导入后，就立刻开始检查并上传本地图片，预览不必等到复制微信时才修正。</p><div class="settings-status-line"><strong>导入状态</strong><span id="import-source-status">还没有导入文档</span></div><div class="settings-status-line"><strong>资源库</strong><span id="import-asset-status">0 张图片已索引</span></div><div class="settings-status-line"><strong>正文检测</strong><span id="media-local-summary">当前正文没有本地图片</span></div><div class="settings-actions"><button class="settings-primary-btn" onclick="triggerImportBundle()">导入 Markdown + 图片</button><button class="settings-secondary-btn" onclick="triggerImportFolder()">导入整个文章目录</button></div><div class="settings-mini-note">如果正文里引用的是相对路径图片，建议直接导入整篇文章目录，自动匹配会更稳。</div></div><div class="settings-card"><h4>图床 / OSS 配置</h4><p>只要正文里检测到本地图片，系统会优先尝试即时上传到 OSS。手动上传按钮仍然保留，适合零星补图。</p><div class="settings-status-line"><strong>图床状态</strong><span id="oss-config-status">未配置</span></div><div class="settings-field-grid"><div class="setting-group"><label>AccessKeyId</label><input type="text" id="oss-access-key" placeholder="输入 AccessKeyId"></div><div class="setting-group"><label>AccessKeySecret</label><input type="password" id="oss-secret-key" autocomplete="off" placeholder="输入 AccessKeySecret"></div><div class="setting-group"><label>Bucket 名称</label><input type="text" id="oss-bucket" placeholder="如：wechat-assets"></div><div class="setting-group"><label>Endpoint</label><input type="text" id="oss-endpoint" placeholder="如：oss-cn-beijing.aliyuncs.com"></div><div class="setting-group"><label>自定义域名（可选）</label><input type="text" id="oss-custom-domain" placeholder="如：https://cdn.example.com"></div><div class="setting-group"><label>上传前缀（可选）</label><input type="text" id="oss-prefix" placeholder="如：articles/2026/"></div></div><div class="settings-actions"><button class="settings-primary-btn" onclick="saveOSSSettings()">保存图床配置</button><button class="settings-secondary-btn" onclick="triggerManualImageUpload()">手动上传图片</button></div><input type="file" id="oss-file-input" multiple accept="image/*" style="display:none" onchange="handleOSSUpload(this.files); this.value='';"><div class="settings-mini-note">浏览器直传时，Bucket 需要允许 PUT / GET / OPTIONS，并放行 Authorization、x-oss-date、x-oss-content-sha256、Content-Type。</div><div id="oss-upload-log" class="settings-log"></div></div><div class="settings-card full"><h4>当前自动化策略</h4><div class="settings-info-grid"><div class="settings-mini-card"><strong>导入或粘贴后立即同步</strong><span>导入 Markdown、导入文章目录，或粘贴带图片的内容后，会优先检查正文里的本地图片并尝试上传 OSS。</span></div><div class="settings-mini-card"><strong>复制阶段只做兜底检查</strong><span>点击“复制到微信”时仍会再检查一遍，避免漏掉未同步的本地图片。</span></div></div></div></section>
         <section class="settings-hub-panel" data-tab-panel="account"><div class="settings-card"><h4>本地工作台身份</h4><div class="settings-account-hero"><div><strong>当前还是本地单文件模式</strong><span id="account-storage-summary">配置项保存在当前浏览器里，刷新可保留，换机器不会同步。</span></div><span class="settings-chip dim">LOCAL</span></div><div class="settings-field-grid"><div class="setting-group"><label>显示名称</label><input type="text" id="local-display-name" placeholder="比如：镜哥排版工作台"></div><div class="setting-group"><label>联系邮箱</label><input type="text" id="local-email" placeholder="可选，仅做本地记录"></div></div><div class="settings-actions"><button class="settings-primary-btn" onclick="saveLocalWorkspaceProfile()">保存本地资料</button></div></div><div class="settings-card"><h4>服务器版建议</h4><div class="settings-info-grid"><div class="settings-mini-card"><strong>登录方式</strong><span>优先接邮箱验证码、GitHub 或微信登录，前端只保留会话，不直接接触永久密钥。</span></div><div class="settings-mini-card"><strong>配置存储</strong><span>AI Key、OSS 配置建议入库前加密，读取时由服务端解密使用，前端只看到掩码值。</span></div><div class="settings-mini-card"><strong>OSS 上传</strong><span>不要把永久 AccessKey 放到浏览器。多人版应改成 STS 或服务端签名上传。</span></div><div class="settings-mini-card"><strong>推荐拆分</strong><span>如果继续做账号和发布，建议把单 HTML 拆成前端界面 + 配置 API + 上传签名服务。</span></div></div></div></section>
       </div><div class="settings-hub-footer"><div class="settings-hub-footer-note" id="settings-footer-note">当前是本地模式，敏感配置仍存放在浏览器本地。多人部署时建议迁移到服务端加密存储。</div><div class="settings-actions"><button class="settings-secondary-btn" onclick="closeSettings()">完成</button></div></div></div></div>`);
   }
@@ -983,15 +1070,19 @@
     const prefix = c.prefix ? c.prefix.replace(/\/+$/, '') + '/' : '';
     const ext = (file.name || 'image.bin').split('.').pop();
     const objKey = prefix + Date.now() + '_' + Math.random().toString(36).slice(2, 7) + '.' + ext;
-    const ossDate = new Date().toUTCString();
     const contentType = guessFileContentType(file);
-    const canonResource = '/' + c.bucket + '/' + objKey;
-    const stringToSign = 'PUT\\n\\n' + contentType + '\\n' + ossDate + '\\n' + 'x-oss-date:' + ossDate + '\\n' + canonResource;
-    const sig = await window.hmacSHA1Base64(c.secretKey, stringToSign);
-    const auth = 'OSS ' + c.accessKey + ':' + sig;
+    const payloadHash = await sha256HexFromBlob(file);
+    const signed = await createOSSV4Authorization(c, objKey, contentType, payloadHash);
     const endpoint = c.endpoint.replace(/^https?:\/\//, '');
     const url = 'https://' + c.bucket + '.' + endpoint + '/' + objKey;
-    const resp = await fetch(url, { method: 'PUT', headers: { 'Content-Type': contentType, 'x-oss-date': ossDate, Authorization: auth }, body: file });
+    const headers = {
+      'Content-Type': contentType,
+      'x-oss-content-sha256': signed.payloadHash,
+      'x-oss-date': signed.isoDate,
+      Authorization: signed.authorization,
+    };
+    if (c.securityToken) headers['x-oss-security-token'] = String(c.securityToken).trim();
+    const resp = await fetch(url, { method: 'PUT', headers: headers, body: file });
     if (!resp.ok) {
       const txt = await resp.text();
       throw new Error('OSS 上传失败：' + resp.status + ' ' + txt.slice(0, 240));
