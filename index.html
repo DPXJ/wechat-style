@@ -407,10 +407,22 @@
         .ai-provider-select:focus { outline: none; border-color: #2dd4a8; }
         .ai-settings-modal .btn-save { margin-top: 8px; padding: 10px 24px; border: none; border-radius: 8px; background: #2dd4a8; color: #0a0a0c; font-weight: 600; cursor: pointer; font-family: inherit; }
         .ai-settings-modal .btn-save:hover { background: #25b893; }
-        .ai-loading { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 150; align-items: center; justify-content: center; }
+        .ai-loading { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.74); backdrop-filter: blur(8px); z-index: 150; align-items: center; justify-content: center; }
         .ai-loading.active { display: flex; }
-        .ai-loading .spinner { width: 40px; height: 40px; border: 3px solid #2a2a2e; border-top-color: #2dd4a8; border-radius: 50%; animation: spin 0.8s linear infinite; }
-        .ai-loading .text { margin-top: 16px; color: #aaa; font-size: 14px; }
+        .ai-loading-card { width: min(460px, calc(100vw - 32px)); padding: 28px 24px 22px; border-radius: 24px; border: 1px solid #2a2a2e; background: radial-gradient(circle at top right, rgba(45,212,168,0.12), transparent 34%), linear-gradient(180deg, #111318, #0a0d12); box-shadow: 0 28px 80px rgba(0,0,0,0.45); }
+        .ai-loading-card.error { background: radial-gradient(circle at top right, rgba(255,140,66,0.16), transparent 34%), linear-gradient(180deg, #18110d, #0f0b09); }
+        .ai-loading-eyebrow { font-size: 11px; letter-spacing: 0.24em; text-transform: uppercase; color: #2dd4a8; margin-bottom: 12px; }
+        .ai-loading-card.error .ai-loading-eyebrow { color: #ff8c42; }
+        .ai-loading-title { font-size: 26px; font-weight: 800; color: #fff; line-height: 1.3; margin-bottom: 10px; }
+        .ai-loading-detail { color: #98a1b0; font-size: 13px; line-height: 1.8; margin-bottom: 18px; min-height: 42px; }
+        .ai-loading-bar { height: 10px; border-radius: 999px; background: #11141a; border: 1px solid #232934; overflow: hidden; }
+        .ai-loading-fill { height: 100%; width: 0%; border-radius: inherit; background: linear-gradient(90deg, #2dd4a8, #5eead4); box-shadow: 0 0 18px rgba(45,212,168,0.28); transition: width 0.28s ease; }
+        .ai-loading-card.error .ai-loading-fill { background: linear-gradient(90deg, #ff8c42, #ffb36b); box-shadow: 0 0 18px rgba(255,140,66,0.24); }
+        .ai-loading-meta { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 14px; }
+        .ai-loading-step { color: #c0c8d4; font-size: 12px; }
+        .ai-loading-percent { color: #fff; font-size: 13px; font-weight: 700; }
+        .ai-loading .spinner { width: 34px; height: 34px; border: 3px solid #2a2a2e; border-top-color: #2dd4a8; border-radius: 50%; animation: spin 0.8s linear infinite; flex-shrink: 0; }
+        .ai-loading-head { display:flex; align-items:center; gap:14px; margin-bottom: 14px; }
         @keyframes spin { to { transform: rotate(360deg); } }
 
         /* ========== TOAST NOTIFICATION ========== */
@@ -800,6 +812,14 @@
                     <option value="C">C 时间轴</option>
                     <option value="D">D 渐变序号</option>
                 </select>
+                <label>二级</label>
+                <select id="preview-h2style" class="style-preview-select" title="二级标题风格（可覆盖正文中的 h2style）" onchange="updatePreview()">
+                    <option value="">跟随正文</option>
+                    <option value="A">A 编号主标题</option>
+                    <option value="B">B 色块横幅</option>
+                    <option value="C">C 竖线分栏</option>
+                    <option value="D">D 徽章标题</option>
+                </select>
             </div>
             <div class="preview-area" id="preview-area">
                 <div class="article-container">
@@ -993,9 +1013,10 @@
         <div class="help-modal">
             <h3>Markdown 语法参考</h3>
             <table class="help-table">
-                <tr><td>--- 开头 front matter</td><td>动态头部：subtitle, title, tags, banner, steps, image, hstyle, sstyle</td></tr>
+                <tr><td>--- 开头 front matter</td><td>动态头部：subtitle, title, tags, banner, steps, image, hstyle, sstyle, h2style</td></tr>
                 <tr><td>hstyle: A/B/C/D/E</td><td>头部风格：A默认 B边框卡片 C暗底 D居中 E极简徽章</td></tr>
                 <tr><td>sstyle: A/B/C/D</td><td>步骤风格：A高亮首卡 B圆圈列表 C时间轴 D渐变序号</td></tr>
+                <tr><td>h2style: A/B/C/D</td><td>二级标题风格：A编号主标题 B色块横幅 C竖线分栏 D徽章标题</td></tr>
                 <tr><td># 文章标题</td><td>一级标题（文章主标题，居中）</td></tr>
                 <tr><td>## 01 章节标题</td><td>带编号的章节标题（大号数字 + 渐变线）</td></tr>
                 <tr><td>## 普通标题</td><td>二级标题（无编号）</td></tr>
@@ -1082,9 +1103,20 @@
 
     <!-- AI 优化加载中 -->
     <div class="ai-loading" id="ai-loading">
-        <div style="text-align:center;">
-            <div class="spinner"></div>
-            <div class="text" id="ai-loading-text">AI 正在优化排版…</div>
+        <div class="ai-loading-card" id="ai-loading-card">
+            <div class="ai-loading-eyebrow" id="ai-loading-eyebrow">AI Optimize</div>
+            <div class="ai-loading-head">
+                <div class="spinner"></div>
+                <div>
+                    <div class="ai-loading-title" id="ai-loading-title">AI 正在优化排版</div>
+                    <div class="ai-loading-detail" id="ai-loading-text">准备检查接口连通性…</div>
+                </div>
+            </div>
+            <div class="ai-loading-bar"><div class="ai-loading-fill" id="ai-loading-fill"></div></div>
+            <div class="ai-loading-meta">
+                <span class="ai-loading-step" id="ai-loading-step">准备开始</span>
+                <span class="ai-loading-percent" id="ai-loading-percent">0%</span>
+            </div>
         </div>
     </div>
 
@@ -1530,17 +1562,22 @@
             let merged = { ...fm };
             if (styleOverrides.hstyle != null && styleOverrides.hstyle !== '') merged.hstyle = styleOverrides.hstyle;
             if (styleOverrides.sstyle != null && styleOverrides.sstyle !== '') merged.sstyle = styleOverrides.sstyle;
+            if (styleOverrides.h2style != null && styleOverrides.h2style !== '') merged.h2style = styleOverrides.h2style;
+            CURRENT_RENDER_STYLES.h2style = (merged.h2style || 'A').toUpperCase();
             return renderFrontMatterHeader(merged) + renderMarkdown(body);
         }
+        CURRENT_RENDER_STYLES.h2style = (styleOverrides.h2style || 'A').toUpperCase();
         return renderMarkdown(md);
     }
 
     function getPreviewStyleOverrides() {
         let h = document.getElementById('preview-hstyle');
         let s = document.getElementById('preview-sstyle');
+        let h2 = document.getElementById('preview-h2style');
         let out = {};
         if (h && h.value) out.hstyle = h.value;
         if (s && s.value) out.sstyle = s.value;
+        if (h2 && h2.value) out.h2style = h2.value;
         return out;
     }
 
@@ -1721,6 +1758,82 @@
        RENDER FUNCTIONS — 各元素渲染
     ================================================================ */
 
+    let CURRENT_RENDER_STYLES = { h2style: 'A' };
+
+    function renderNumberedH2(num, title, styleCode) {
+        styleCode = (styleCode || 'A').toUpperCase();
+        if (styleCode === 'B') {
+            return `<section style="margin:44px 0 22px 0;">
+                <section style="display:flex;align-items:center;gap:14px;padding:16px 18px;border-radius:18px;background:linear-gradient(135deg,${CONFIG.accent}18,${CONFIG.cardBg});border:1px solid ${CONFIG.accent}40;">
+                    <span style="display:inline-flex;align-items:center;justify-content:center;min-width:56px;height:56px;padding:0 14px;border-radius:16px;background:${CONFIG.accent};color:#0a0a0c;font-size:20px;font-weight:900;letter-spacing:1px;">${num}</span>
+                    <section style="flex:1;">
+                        <span style="display:block;font-size:11px;letter-spacing:0.22em;color:${CONFIG.accent};margin-bottom:6px;">SECTION ${num}</span>
+                        <span style="display:block;font-size:23px;font-weight:800;color:${CONFIG.titleColor};line-height:1.35;">${title}</span>
+                    </section>
+                </section>
+            </section>`;
+        }
+        if (styleCode === 'C') {
+            return `<section style="margin:46px 0 22px 0;padding:0 0 0 18px;border-left:4px solid ${CONFIG.accent};">
+                <section style="display:flex;align-items:flex-start;gap:16px;">
+                    <span style="display:inline-flex;align-items:center;justify-content:center;min-width:54px;height:54px;border-radius:16px;border:1px solid ${CONFIG.borderColor};background:${CONFIG.cardBg};font-size:20px;font-weight:900;color:${CONFIG.accent};">${num}</span>
+                    <section style="padding-top:4px;">
+                        <span style="display:block;font-size:12px;letter-spacing:0.2em;color:${CONFIG.subtitleColor};margin-bottom:6px;">章节 ${num}</span>
+                        <span style="display:block;font-size:24px;font-weight:800;color:${CONFIG.titleColor};line-height:1.35;">${title}</span>
+                    </section>
+                </section>
+            </section>`;
+        }
+        if (styleCode === 'D') {
+            return `<section style="margin:44px 0 22px 0;">
+                <section style="display:inline-flex;align-items:center;gap:10px;padding:8px 12px;border-radius:999px;background:${CONFIG.accent}16;border:1px solid ${CONFIG.accent}33;margin-bottom:12px;">
+                    <span style="font-size:11px;letter-spacing:0.24em;color:${CONFIG.accent};font-weight:800;">PART ${num}</span>
+                </section>
+                <h2 style="font-size:26px;font-weight:850;color:${CONFIG.titleColor};line-height:1.35;margin:0 0 10px 0;">${title}</h2>
+                <section style="width:88px;height:4px;border-radius:999px;background:linear-gradient(90deg,${CONFIG.accent},transparent);"></section>
+            </section>`;
+        }
+        return `<section style="margin:48px 0 24px 0;">
+            <section style="display:flex;align-items:flex-end;gap:16px;margin-bottom:14px;">
+                <section style="position:relative;">
+                    <span style="font-size:64px;font-weight:900;color:${CONFIG.accent};line-height:1;font-family:'DIN Alternate','DIN',Impact,'Arial Black',sans-serif;letter-spacing:-2px;opacity:0.85;">${num}</span>
+                </section>
+                <section style="padding-bottom:8px;">
+                    <span style="font-size:21px;font-weight:700;color:${CONFIG.titleColor};line-height:1.3;letter-spacing:0.5px;">${title}</span>
+                </section>
+            </section>
+            <section style="height:3px;background:linear-gradient(90deg,${CONFIG.accent},${CONFIG.accent}40,transparent);border-radius:2px;"></section>
+        </section>`;
+    }
+
+    function renderPlainH2(text, styleCode) {
+        styleCode = (styleCode || 'A').toUpperCase();
+        if (styleCode === 'B') {
+            return `<section style="margin:38px 0 18px 0;">
+                <section style="padding:14px 18px;border-radius:16px;background:linear-gradient(135deg,${CONFIG.accent}15,${CONFIG.cardBg});border:1px solid ${CONFIG.accent}30;">
+                    <h2 style="font-size:22px;font-weight:800;color:${CONFIG.titleColor};line-height:1.4;margin:0;">${text}</h2>
+                </section>
+            </section>`;
+        }
+        if (styleCode === 'C') {
+            return `<section style="margin:38px 0 18px 0;padding-left:16px;border-left:4px solid ${CONFIG.accent};">
+                <span style="display:block;font-size:11px;letter-spacing:0.22em;color:${CONFIG.subtitleColor};margin-bottom:6px;">SECTION</span>
+                <h2 style="font-size:23px;font-weight:800;color:${CONFIG.titleColor};line-height:1.4;margin:0;">${text}</h2>
+            </section>`;
+        }
+        if (styleCode === 'D') {
+            return `<section style="margin:38px 0 18px 0;">
+                <section style="display:inline-flex;align-items:center;padding:7px 12px;border-radius:999px;background:${CONFIG.accent}14;border:1px solid ${CONFIG.accent}30;margin-bottom:10px;">
+                    <span style="font-size:11px;letter-spacing:0.22em;color:${CONFIG.accent};font-weight:800;">INSIGHT</span>
+                </section>
+                <h2 style="font-size:24px;font-weight:820;color:${CONFIG.titleColor};line-height:1.4;margin:0;">${text}</h2>
+            </section>`;
+        }
+        return `<section style="margin:40px 0 20px 0;">
+            <h2 style="font-size:22px;font-weight:700;color:${CONFIG.titleColor};line-height:1.4;margin:0;padding-bottom:12px;border-bottom:2px solid ${CONFIG.accent}40;">${text}</h2>
+        </section>`;
+    }
+
     function renderHeading(level, rawText) {
         let text = inlineFormat(rawText);
 
@@ -1734,24 +1847,13 @@
         // H2 = Section header — detect number pattern like "01 Title"
         if (level === 2) {
             let numMatch = rawText.match(/^(\d{1,2})\s+(.+)$/);
+            let h2style = CURRENT_RENDER_STYLES.h2style || 'A';
             if (numMatch) {
                 let num = numMatch[1].padStart(2, '0');
                 let title = inlineFormat(numMatch[2]);
-                return `<section style="margin:48px 0 24px 0;">
-                    <section style="display:flex;align-items:flex-end;gap:16px;margin-bottom:14px;">
-                        <section style="position:relative;">
-                            <span style="font-size:64px;font-weight:900;color:${CONFIG.accent};line-height:1;font-family:'DIN Alternate','DIN',Impact,'Arial Black',sans-serif;letter-spacing:-2px;opacity:0.85;">${num}</span>
-                        </section>
-                        <section style="padding-bottom:8px;">
-                            <span style="font-size:21px;font-weight:700;color:${CONFIG.titleColor};line-height:1.3;letter-spacing:0.5px;">${title}</span>
-                        </section>
-                    </section>
-                    <section style="height:3px;background:linear-gradient(90deg,${CONFIG.accent},${CONFIG.accent}40,transparent);border-radius:2px;"></section>
-                </section>`;
+                return renderNumberedH2(num, title, h2style);
             }
-            return `<section style="margin:40px 0 20px 0;">
-                <h2 style="font-size:22px;font-weight:700;color:${CONFIG.titleColor};line-height:1.4;margin:0;padding-bottom:12px;border-bottom:2px solid ${CONFIG.accent}40;">${text}</h2>
-            </section>`;
+            return renderPlainH2(text, h2style);
         }
 
         // H3 = Subsection
@@ -2347,17 +2449,7 @@
     /* ================================================================
        Markdown 一键优化
     ================================================================ */
-    function optimizeMarkdown() {
-        let md = document.getElementById('markdown-input').value;
-        if (!md.trim()) { showToast('请先输入内容'); return; }
-
-        let lines = md.split('\n');
-        let out = [];
-        let i = 0;
-        let sectionNum = 0;
-        let changes = [];
-
-        // ── 检测是否已有 front matter ──
+    function getFrontMatterBounds(lines) {
         let hasFM = lines[0] && lines[0].trim() === '---';
         let fmEnd = -1;
         if (hasFM) {
@@ -2365,106 +2457,159 @@
                 if (lines[k].trim() === '---') { fmEnd = k; break; }
             }
         }
+        return { hasFM, fmEnd };
+    }
 
-        // ── 提取所有 ## 标题作为步骤 ──
+    function sanitizeSubtitleText(line) {
+        return String(line || '').trim().replace(/[*_`=~>:#!\-\[\]\(\)]/g, '').replace(/\s+/g, ' ').slice(0, 8) || '展开阅读';
+    }
+
+    function isLikelyStandaloneNumericHeading(lines, index) {
+        let line = (lines[index] || '').trim();
+        if (!line || /^#{1,6}\s/.test(line) || /^[-*+]\s/.test(line) || /^>\s/.test(line) || /^!\[/.test(line) || /^:::\s*/.test(line)) return false;
+        let match = line.match(/^(0?\d{1,2})(?:[、.．]|\s{1,3})(.+)$/);
+        if (!match) return false;
+        let title = match[2].trim();
+        if (!title || title.length > 30) return false;
+        let prev = index > 0 ? (lines[index - 1] || '').trim() : '';
+        let next = index + 1 < lines.length ? (lines[index + 1] || '').trim() : '';
+        let prevOk = !prev || /^---+$/.test(prev) || /^#{1,6}\s/.test(prev) || /^:::\s*$/.test(prev);
+        let nextOk = !!next && !/^[-*+]\s/.test(next) && !/^\d+\.\s/.test(next);
+        return prevOk && nextOk;
+    }
+
+    function collectSectionSteps(lines) {
+        let steps = [];
+        for (let i = 0; i < lines.length; i++) {
+            let line = lines[i];
+            if (!/^##\s+/.test(line)) continue;
+            let title = line.replace(/^##\s+/, '').replace(/^\d{1,2}\s+/, '').trim();
+            if (!title) continue;
+            let subtitle = '展开阅读';
+            for (let j = i + 1; j < lines.length; j++) {
+                let probe = (lines[j] || '').trim();
+                if (!probe) continue;
+                if (/^#{1,6}\s/.test(probe) || /^:::\s*/.test(probe) || /^!\[/.test(probe)) break;
+                subtitle = sanitizeSubtitleText(probe);
+                break;
+            }
+            steps.push(title + '|' + subtitle);
+        }
+        return steps;
+    }
+
+    function upsertFrontMatterFields(lines, fields) {
+        let { hasFM, fmEnd } = getFrontMatterBounds(lines);
+        if (!hasFM || fmEnd === -1) return lines;
+        let nextLines = lines.slice();
+        let offset = 0;
+        Object.keys(fields).forEach((key) => {
+            let value = fields[key];
+            if (value == null || value === '') return;
+            let existingIndex = -1;
+            for (let i = 1; i < fmEnd + offset; i++) {
+                if (nextLines[i].startsWith(key + ':')) { existingIndex = i; break; }
+            }
+            let line = key + ': ' + value;
+            if (existingIndex !== -1) nextLines[existingIndex] = line;
+            else {
+                nextLines.splice(fmEnd + offset, 0, line);
+                offset++;
+            }
+        });
+        return nextLines;
+    }
+
+    function buildStructuredMarkdown(md, options) {
+        let opts = { promoteStandaloneNumericTitles: true, ensureH2Style: false, defaultH2Style: 'A', ...(options || {}) };
+        let lines = md.split('\n');
+        let changes = [];
+
+        if (opts.promoteStandaloneNumericTitles) {
+            lines = lines.map((line, index) => {
+                if (!isLikelyStandaloneNumericHeading(lines, index)) return line;
+                let match = line.trim().match(/^(0?\d{1,2})(?:[、.．]|\s{1,3})(.+)$/);
+                if (!match) return line;
+                changes.push('数字标题提升为二级标题');
+                return '## ' + match[1].padStart(2, '0') + ' ' + match[2].trim();
+            });
+        }
+
+        let { hasFM } = getFrontMatterBounds(lines);
         let h1Title = '';
         let h2Titles = [];
         for (let line of lines) {
             if (/^#\s+/.test(line) && !h1Title) h1Title = line.replace(/^#\s+/, '').trim();
             if (/^##\s+/.test(line)) {
                 let t = line.replace(/^##\s+/, '').replace(/^\d{1,2}\s+/, '').trim();
-                h2Titles.push(t);
+                if (t) h2Titles.push(t);
             }
         }
 
-        // ── 如果没有 front matter，自动生成 ──
         if (!hasFM && (h1Title || h2Titles.length > 0)) {
-            let stepsStr = h2Titles.map((t, idx) => {
-                // 截取步骤副标题：取该标题后第一个非空行的前8字
-                let titleLine = '## ' + t;
-                let found = false;
-                let subtitle = '展开阅读';
-                for (let j = 0; j < lines.length; j++) {
-                    if (lines[j].trim().endsWith(t) && /^##/.test(lines[j])) { found = true; continue; }
-                    if (found && lines[j].trim() && !/^#/.test(lines[j])) {
-                        let sub = lines[j].trim().replace(/[*_`=~>:#!]/g, '').slice(0, 8);
-                        if (sub) subtitle = sub;
-                        break;
-                    }
-                }
-                return t + '|' + subtitle;
-            }).join(', ');
-
             let fmLines = ['---'];
             if (h1Title) { fmLines.push('subtitle: 精选分享'); fmLines.push('title: ' + h1Title); }
-            if (h2Titles.length > 0) fmLines.push('steps: ' + stepsStr);
+            if (opts.ensureH2Style) fmLines.push('h2style: ' + (opts.defaultH2Style || 'A'));
             fmLines.push('---', '');
             lines = [...fmLines, ...lines];
             changes.push('自动生成 front matter');
-        } else if (hasFM && fmEnd > 0 && h2Titles.length > 0) {
-            // ── front matter 已存在，检查是否有 steps，没有则补充 ──
-            let fmBlock = lines.slice(0, fmEnd + 1).join('\n');
-            if (!fmBlock.includes('steps:')) {
-                let stepsStr = h2Titles.map(t => {
-                    let found = false;
-                    let subtitle = '展开阅读';
-                    for (let j = 0; j < lines.length; j++) {
-                        if (/^##/.test(lines[j]) && lines[j].includes(t)) { found = true; continue; }
-                        if (found && lines[j].trim() && !/^#/.test(lines[j])) {
-                            let sub = lines[j].trim().replace(/[*_`=~>:#!]/g, '').slice(0, 8);
-                            if (sub) subtitle = sub;
-                            break;
-                        }
-                    }
-                    return t + '|' + subtitle;
-                }).join(', ');
-                lines.splice(fmEnd, 0, 'steps: ' + stepsStr);
-                changes.push('补充 steps 字段');
-            }
+        } else if (hasFM && opts.ensureH2Style) {
+            lines = upsertFrontMatterFields(lines, { h2style: (opts.defaultH2Style || 'A') });
         }
 
-        // ── 逐行处理正文 ──
-        let processedLines = lines;
         let outLines = [];
-        i = 0;
-        sectionNum = 0;
-        while (i < processedLines.length) {
-            let line = processedLines[i];
-            // 为 ## 标题添加编号（若无）
-            if (/^##\s+(?!\d{1,2}\s)/.test(line)) {
+        let sectionNum = 0;
+        let i = 0;
+        while (i < lines.length) {
+            let line = lines[i];
+            if (/^##\s+/.test(line)) {
                 sectionNum++;
-                let title = line.replace(/^##\s+/, '');
+                let title = line.replace(/^##\s+/, '').replace(/^\d{1,2}(?:[、.．]|\s+)/, '').trim();
                 outLines.push('## ' + String(sectionNum).padStart(2, '0') + ' ' + title);
                 i++; continue;
             }
-            // 检测 - [ ] / - [x] 列表块，转为 :::checklist
             if (/^-\s+\[[\sx]\]\s+/.test(line.trim())) {
                 let checklistLines = [];
-                while (i < processedLines.length && /^-\s+\[[\sx]\]\s+/.test(processedLines[i].trim())) {
-                    checklistLines.push(processedLines[i].trim().replace(/^-\s+\[[\sx]\]\s+/, '- '));
+                while (i < lines.length && /^-\s+\[[\sx]\]\s+/.test(lines[i].trim())) {
+                    checklistLines.push(lines[i].trim().replace(/^-\s+\[[\sx]\]\s+/, '- '));
                     i++;
                 }
                 outLines.push(':::checklist CHECKLIST');
                 outLines.push(...checklistLines);
-                outLines.push(':::'); outLines.push('');
+                outLines.push(':::');
+                outLines.push('');
                 changes.push('清单块转换');
                 continue;
             }
             outLines.push(line);
             i++;
         }
+
+        let steps = collectSectionSteps(outLines);
+        if (steps.length > 0) {
+            outLines = upsertFrontMatterFields(outLines, { steps: steps.join(', ') });
+            if (!changes.includes('steps 同步')) changes.push('steps 同步');
+        }
         if (sectionNum > 0 && !changes.includes('章节编号')) changes.push('章节编号');
 
-        let newVal = outLines.join('\n');
+        let markdown = outLines.join('\n');
+        let localImagesCount = (markdown.match(/!\[[^\]]*\]\((?!https?:\/\/)[^)]+\)/g) || []).length;
+        return { markdown, changes, localImagesCount };
+    }
+
+    function optimizeMarkdown() {
+        let md = document.getElementById('markdown-input').value;
+        if (!md.trim()) { showToast('请先输入内容'); return; }
+        let result = buildStructuredMarkdown(md, { promoteStandaloneNumericTitles: true });
+        let newVal = result.markdown;
         document.getElementById('markdown-input').value = newVal;
         immediatePushHistory(newVal);
         updatePreview();
 
         // ── 检测本地图片路径 ──
-        let localImgs = (newVal.match(/!\[[^\]]*\]\((?!https?:\/\/)[^)]+\)/g) || []);
-        let toastMsg = '已优化：' + (changes.length ? changes.join(' + ') : '无变化');
-        if (localImgs.length > 0) {
-            toastMsg += ' ⚠️ 发现 ' + localImgs.length + ' 张本地图片，建议通过「OSS 图片」上传';
+        let toastMsg = '已优化：' + (result.changes.length ? result.changes.join(' + ') : '无变化');
+        if (result.localImagesCount > 0) {
+            toastMsg += ' ⚠️ 发现 ' + result.localImagesCount + ' 张本地图片，建议通过「OSS 图片」上传';
         }
         showToast(toastMsg);
     }
@@ -2899,7 +3044,7 @@
         card: `:::card\n卡片块内容，支持完整 Markdown。\n:::`,
         intro: `:::intro\n第一段侧边线内容。\n\n第二段侧边线内容。\n:::`,
         grid2: `:::grid-2\n![图片1](image1.jpg)\n![图片2](image2.jpg)\n:::`,
-        frontmatter: `---\nsubtitle: 分类标签\ntitle: "标题第一行\\n标题第二行"\ntags: 标签1, 标签2, 标签3\nbanner: 一句吸引人的文案\nsteps: 步骤一|副标题, 步骤二|副标题, 步骤三|副标题\nhstyle: A\nsstyle: A\n---`,
+            frontmatter: `---\nsubtitle: 分类标签\ntitle: "标题第一行\\n标题第二行"\ntags: 标签1, 标签2, 标签3\nbanner: 一句吸引人的文案\nsteps: 步骤一|副标题, 步骤二|副标题, 步骤三|副标题\nhstyle: A\nsstyle: A\nh2style: A\n---`,
         tail: `:::tail\n![尾图](尾图.png)\n:::`,
     };
 
@@ -3011,6 +3156,88 @@
         }
     });
 
+    let aiLoadingPulseTimer = null;
+    let lastAIPreflight = { key: '', apiUrl: '', model: '', at: 0 };
+
+    function setAILoadingState(title, detail, progress, step, isError) {
+        let card = document.getElementById('ai-loading-card');
+        let titleEl = document.getElementById('ai-loading-title');
+        let textEl = document.getElementById('ai-loading-text');
+        let fillEl = document.getElementById('ai-loading-fill');
+        let stepEl = document.getElementById('ai-loading-step');
+        let percentEl = document.getElementById('ai-loading-percent');
+        if (card) card.classList.toggle('error', !!isError);
+        if (titleEl) titleEl.textContent = title || 'AI 正在处理';
+        if (textEl) textEl.textContent = detail || '';
+        if (fillEl) fillEl.style.width = Math.max(0, Math.min(100, progress || 0)) + '%';
+        if (stepEl) stepEl.textContent = step || '处理中';
+        if (percentEl) percentEl.textContent = Math.round(progress || 0) + '%';
+    }
+
+    function openAILoading(title, detail, progress, step, isError) {
+        let loading = document.getElementById('ai-loading');
+        setAILoadingState(title, detail, progress, step, isError);
+        loading.classList.add('active');
+    }
+
+    function closeAILoading() {
+        if (aiLoadingPulseTimer) clearInterval(aiLoadingPulseTimer);
+        aiLoadingPulseTimer = null;
+        document.getElementById('ai-loading').classList.remove('active');
+    }
+
+    function startAILoadingPulse(from, to, stepLabel, detail) {
+        if (aiLoadingPulseTimer) clearInterval(aiLoadingPulseTimer);
+        let current = from;
+        setAILoadingState('AI 正在优化排版', detail, current, stepLabel, false);
+        aiLoadingPulseTimer = setInterval(() => {
+            current = Math.min(to, current + Math.random() * 4 + 1.5);
+            setAILoadingState('AI 正在优化排版', detail, current, stepLabel, false);
+            if (current >= to && aiLoadingPulseTimer) {
+                clearInterval(aiLoadingPulseTimer);
+                aiLoadingPulseTimer = null;
+            }
+        }, 380);
+    }
+
+    async function requestAICompletion(c, messages, extraOptions) {
+        let options = extraOptions || {};
+        let headers = {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + c.apiKey
+        };
+        let body = {
+            model: c.model,
+            messages: messages,
+            temperature: options.temperature != null ? options.temperature : 0.3
+        };
+        if (options.max_tokens != null) body.max_tokens = options.max_tokens;
+        if (options.stream != null) body.stream = options.stream;
+        return await fetch(c.apiUrl, {
+            method: 'POST',
+            headers: headers,
+            body: JSON.stringify(body)
+        });
+    }
+
+    async function verifyAIConnection(c) {
+        let cacheKey = [c.apiUrl, c.model, c.apiKey].join('::');
+        if (lastAIPreflight.key === cacheKey && (Date.now() - lastAIPreflight.at) < 120000) return true;
+        let res = await requestAICompletion(c, [
+            { role: 'system', content: '你是接口连通性检查助手，只回复 ok。' },
+            { role: 'user', content: '请只回复 ok' }
+        ], { temperature: 0, max_tokens: 8, stream: false });
+        if (!res.ok) {
+            let err = await res.text();
+            throw new Error(res.status + ' ' + err.slice(0, 200));
+        }
+        let data = await res.json();
+        let content = data.choices?.[0]?.message?.content;
+        if (!content || !/ok/i.test(String(content))) throw new Error('AI 接口返回异常，预检未通过');
+        lastAIPreflight = { key: cacheKey, apiUrl: c.apiUrl, model: c.model, at: Date.now() };
+        return true;
+    }
+
     const AI_CMD_SYSTEM = `你是「镜哥排版器」的 AI 样式指令助手。
 
 【核心原则】
@@ -3044,7 +3271,8 @@
 
 【头部/步骤风格值】
 - hstyle: A（默认）/ B（边框卡片）/ C（暗底）/ D（居中）/ E（极简徽章）
-- sstyle: A（高亮首卡）/ B（圆圈列表）/ C（时间轴）/ D（渐变序号）`;
+- sstyle: A（高亮首卡）/ B（圆圈列表）/ C（时间轴）/ D（渐变序号）
+- h2style: A（编号主标题）/ B（色块横幅）/ C（竖线分栏）/ D（徽章标题）`;
 
     async function runAICmd() {
         let instruction = document.getElementById('ai-cmd-input').value.trim();
@@ -3106,6 +3334,8 @@
 • 所有正文文字、标点、图片路径必须原样保留，一字不改。
 • 只做结构包裹和样式分配，让内容以更好看的方式呈现。
 • 图片路径 ![](xxx) 必须100%原样保留，一个字符都不能改。
+• 每一个章节标题都必须输出为真正的 Markdown 二级标题语法：## 01 标题
+• 禁止把章节标题写成普通文本，例如“01 标题”这种没有 ## 的形式是不允许的。
 
 ═══ 第一步：构建 front matter ═══
 在文档最开头添加 YAML front matter（用 --- 包裹）：
@@ -3117,9 +3347,12 @@
   示例：如正文有 "## 01 准备工作"，steps 应为 "准备工作|本节概要"
   步骤副标题从该章节第一句话提取（不超过8字）
   有几个 ## 标题就生成几个 step，不能遗漏
+- h2style: A / B / C / D 其一，用于控制二级标题风格，默认用 A
 
 ═══ 第二步：二级标题编号化 ═══
-将 ## 标题改为带两位数字编号：## 01 标题、## 02 标题……（若已有编号则保持不变）
+将所有章节标题统一改为带两位数字编号：## 01 标题、## 02 标题……
+如果原文中有独立成行的数字小节标题（例如“01 准备工作”“02 生成主视觉”），也必须提升成真正的 ## 二级标题。
+最终输出中，不允许出现漏掉 ## 的数字章节标题。
 
 ═══ 第三步：关键内容组件化 ═══
 根据内容类型，将合适的段落用组件包裹（只选最合适的，不要过度包裹）：
@@ -3141,7 +3374,8 @@
 • 只输出完整 Markdown，不加任何解释或前后缀
 • 保留原文所有段落顺序
 • 保留所有图片语法和路径，一字不改
-• 不添加、不删除任何正文内容`;
+• 不添加、不删除任何正文内容
+• 章节标题必须统一，不能出现有的章节是 ## 标题、有的章节只是普通数字文本`;
 
     async function runAIOptimize() {
         let c = getAIConfig();
@@ -3155,26 +3389,26 @@
             showToast('请先输入或粘贴 Markdown 内容');
             return;
         }
-        let loading = document.getElementById('ai-loading');
-        let loadingText = document.getElementById('ai-loading-text');
-        loadingText.textContent = 'AI 正在优化排版…';
-        loading.classList.add('active');
+        let preferredStyles = getPreviewStyleOverrides();
+        let preferredH2Style = preferredStyles.h2style || 'A';
+        openAILoading('AI 优化准备中', '正在检查配置与接口状态…', 6, '准备开始', false);
         try {
-            let res = await fetch(c.apiUrl, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Bearer ' + c.apiKey
-                },
-                body: JSON.stringify({
-                    model: c.model,
-                    messages: [
-                        { role: 'system', content: AI_SYSTEM_PROMPT },
-                        { role: 'user', content: '请将以下 Markdown 改写成符合镜哥排版器模板的增强格式：\n\n' + md }
-                    ],
-                    temperature: 0.3
-                })
-            });
+            setAILoadingState('AI 接口预检中', '先做一次轻量请求，确认模型可用后再进入正式优化。', 18, '连通性检查', false);
+            await verifyAIConnection(c);
+            setAILoadingState('AI 接口已就绪', '接口连通正常，开始发送正式优化请求。', 30, '预检通过', false);
+            startAILoadingPulse(34, 78, 'AI 正在分析结构', '正在识别 front matter、章节标题、步骤摘要和组件化位置…');
+            let userPrompt = [
+                '请将以下 Markdown 改写成符合镜哥排版器模板的增强格式。',
+                '额外要求：',
+                '- 每个章节都必须输出为 ## 01 标题 这种真实二级标题语法',
+                '- 当前偏好的二级标题风格是 h2style: ' + preferredH2Style,
+                '',
+                md
+            ].join('\n');
+            let res = await requestAICompletion(c, [
+                { role: 'system', content: AI_SYSTEM_PROMPT },
+                { role: 'user', content: userPrompt }
+            ], { temperature: 0.2, stream: false });
             if (!res.ok) {
                 let err = await res.text();
                 throw new Error(res.status + ' ' + err.slice(0, 200));
@@ -3186,15 +3420,29 @@
             if (content.startsWith('```')) {
                 content = content.replace(/^```\w*\n?/, '').replace(/\n?```\s*$/, '');
             }
-            document.getElementById('markdown-input').value = content;
-            immediatePushHistory(content);
+            if (aiLoadingPulseTimer) clearInterval(aiLoadingPulseTimer);
+            aiLoadingPulseTimer = null;
+            setAILoadingState('AI 正在整理结果', '正在统一章节编号、steps 字段和二级标题样式，避免出现漏掉的数字标题。', 86, '本地规则收口', false);
+            let polished = buildStructuredMarkdown(content, {
+                promoteStandaloneNumericTitles: true,
+                ensureH2Style: true,
+                defaultH2Style: preferredH2Style
+            });
+            document.getElementById('markdown-input').value = polished.markdown;
+            immediatePushHistory(polished.markdown);
             updatePreview();
-            showToast('AI 优化完成');
+            setAILoadingState('AI 优化完成', '排版增强已完成，标题和步骤结构也已经统一。', 100, '完成', false);
+            setTimeout(() => closeAILoading(), 500);
+            showToast('AI 优化完成：' + (polished.changes.length ? polished.changes.join(' + ') : '排版已更新'));
         } catch (err) {
-            loadingText.textContent = '优化失败';
+            if (aiLoadingPulseTimer) clearInterval(aiLoadingPulseTimer);
+            aiLoadingPulseTimer = null;
+            setAILoadingState('AI 优化失败', '接口调用或结果整理过程中出现问题，请检查 API 配置或稍后重试。', 100, '失败', true);
             showToast('AI 调用失败: ' + (err.message || String(err)));
+            setTimeout(() => closeAILoading(), 1100);
         } finally {
-            loading.classList.remove('active');
+            if (aiLoadingPulseTimer) clearInterval(aiLoadingPulseTimer);
+            aiLoadingPulseTimer = null;
         }
     }
 
