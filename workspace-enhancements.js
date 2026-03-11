@@ -92,10 +92,6 @@
     return toHex(await crypto.subtle.digest('SHA-256', data));
   }
 
-  async function sha256HexFromBlob(blob) {
-    return toHex(await crypto.subtle.digest('SHA-256', await blob.arrayBuffer()));
-  }
-
   async function hmacSHA256Bytes(key, message) {
     const rawKey = typeof key === 'string' ? new TextEncoder().encode(key) : key;
     const cryptoKey = await crypto.subtle.importKey('raw', rawKey, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
@@ -126,7 +122,7 @@
     return '/' + parts.map(encodeRFC3986).join('/');
   }
 
-  async function createOSSV4Authorization(cfg, objectKey, contentType, payloadHash) {
+  async function createOSSV4Authorization(cfg, objectKey, contentType) {
     const now = new Date();
     const y = now.getUTCFullYear();
     const m = String(now.getUTCMonth() + 1).padStart(2, '0');
@@ -138,6 +134,7 @@
     const isoDate = `${shortDate}T${hh}${mm}${ss}Z`;
     const region = getOSSV4RegionFromEndpoint(cfg.endpoint);
     const scope = `${shortDate}/${region}/oss/aliyun_v4_request`;
+    const payloadHash = 'UNSIGNED-PAYLOAD';
     const canonicalHeadersMap = {
       'content-type': contentType,
       'x-oss-content-sha256': payloadHash,
@@ -145,11 +142,13 @@
     };
     if (cfg.securityToken) canonicalHeadersMap['x-oss-security-token'] = String(cfg.securityToken).trim();
     const canonicalHeaders = Object.keys(canonicalHeadersMap).sort().map((key) => `${key}:${canonicalHeadersMap[key]}`).join('\n') + '\n';
+    const additionalHeaders = '';
     const canonicalRequest = [
       'PUT',
       buildOSSV4CanonicalUri(cfg.bucket, objectKey),
       '',
       canonicalHeaders,
+      additionalHeaders,
       payloadHash,
     ].join('\n');
     const stringToSign = [
@@ -163,8 +162,13 @@
     const kService = await hmacSHA256Bytes(kRegion, 'oss');
     const signingKey = await hmacSHA256Bytes(kService, 'aliyun_v4_request');
     const signature = await hmacSHA256Hex(signingKey, stringToSign);
+    const authParts = [
+      `Credential=${cfg.accessKey}/${scope}`,
+      `Signature=${signature}`,
+    ];
+    if (additionalHeaders) authParts.splice(1, 0, `AdditionalHeaders=${additionalHeaders}`);
     return {
-      authorization: `OSS4-HMAC-SHA256 Credential=${cfg.accessKey}/${scope}, Signature=${signature}`,
+      authorization: `OSS4-HMAC-SHA256 ${authParts.join(', ')}`,
       isoDate: isoDate,
       payloadHash: payloadHash,
     };
@@ -1071,8 +1075,7 @@
     const ext = (file.name || 'image.bin').split('.').pop();
     const objKey = prefix + Date.now() + '_' + Math.random().toString(36).slice(2, 7) + '.' + ext;
     const contentType = guessFileContentType(file);
-    const payloadHash = await sha256HexFromBlob(file);
-    const signed = await createOSSV4Authorization(c, objKey, contentType, payloadHash);
+    const signed = await createOSSV4Authorization(c, objKey, contentType);
     const endpoint = c.endpoint.replace(/^https?:\/\//, '');
     const url = 'https://' + c.bucket + '.' + endpoint + '/' + objKey;
     const headers = {
