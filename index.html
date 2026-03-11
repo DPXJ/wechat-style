@@ -409,18 +409,31 @@
         .ai-settings-modal .btn-save:hover { background: #25b893; }
         .ai-loading { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.74); backdrop-filter: blur(8px); z-index: 150; align-items: center; justify-content: center; }
         .ai-loading.active { display: flex; }
-        .ai-loading-card { width: min(460px, calc(100vw - 32px)); padding: 28px 24px 22px; border-radius: 24px; border: 1px solid #2a2a2e; background: radial-gradient(circle at top right, rgba(45,212,168,0.12), transparent 34%), linear-gradient(180deg, #111318, #0a0d12); box-shadow: 0 28px 80px rgba(0,0,0,0.45); }
+        .ai-loading-card { width: min(500px, calc(100vw - 32px)); padding: 26px 24px 22px; border-radius: 24px; border: 1px solid #2a2a2e; background: radial-gradient(circle at top right, rgba(45,212,168,0.12), transparent 34%), linear-gradient(180deg, #111318, #0a0d12); box-shadow: 0 28px 80px rgba(0,0,0,0.45); }
         .ai-loading-card.error { background: radial-gradient(circle at top right, rgba(255,140,66,0.16), transparent 34%), linear-gradient(180deg, #18110d, #0f0b09); }
+        .ai-loading-card.success { background: radial-gradient(circle at top right, rgba(45,212,168,0.18), transparent 34%), linear-gradient(180deg, #101915, #0a1110); }
         .ai-loading-eyebrow { font-size: 11px; letter-spacing: 0.24em; text-transform: uppercase; color: #2dd4a8; margin-bottom: 12px; }
         .ai-loading-card.error .ai-loading-eyebrow { color: #ff8c42; }
+        .ai-loading-card.success .ai-loading-eyebrow { color: #5eead4; }
+        .ai-loading-topbar { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; margin-bottom: 8px; }
         .ai-loading-title { font-size: 26px; font-weight: 800; color: #fff; line-height: 1.3; margin-bottom: 10px; }
         .ai-loading-detail { color: #98a1b0; font-size: 13px; line-height: 1.8; margin-bottom: 18px; min-height: 42px; }
+        .ai-loading-note { margin-top: 12px; padding: 10px 12px; border-radius: 14px; border: 1px solid rgba(45,212,168,0.18); background: rgba(13,19,24,0.9); color: #a9b5c7; font-size: 12px; line-height: 1.7; }
+        .ai-loading-card.error .ai-loading-note { border-color: rgba(255,140,66,0.2); background: rgba(24,17,13,0.92); }
+        .ai-loading-reason { margin-top: 12px; padding: 12px 14px; border-radius: 16px; border: 1px solid rgba(255,140,66,0.28); background: rgba(255,140,66,0.08); color: #ffd2b2; font-size: 12px; line-height: 1.75; white-space: pre-wrap; word-break: break-word; }
         .ai-loading-bar { height: 10px; border-radius: 999px; background: #11141a; border: 1px solid #232934; overflow: hidden; }
         .ai-loading-fill { height: 100%; width: 0%; border-radius: inherit; background: linear-gradient(90deg, #2dd4a8, #5eead4); box-shadow: 0 0 18px rgba(45,212,168,0.28); transition: width 0.28s ease; }
         .ai-loading-card.error .ai-loading-fill { background: linear-gradient(90deg, #ff8c42, #ffb36b); box-shadow: 0 0 18px rgba(255,140,66,0.24); }
+        .ai-loading-card.success .ai-loading-fill { background: linear-gradient(90deg, #2dd4a8, #7cfad6); box-shadow: 0 0 18px rgba(45,212,168,0.32); }
         .ai-loading-meta { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 14px; }
         .ai-loading-step { color: #c0c8d4; font-size: 12px; }
-        .ai-loading-percent { color: #fff; font-size: 13px; font-weight: 700; }
+        .ai-loading-metrics { display: flex; align-items: center; gap: 10px; }
+        .ai-loading-timer { color: #8d98aa; font-size: 12px; font-variant-numeric: tabular-nums; }
+        .ai-loading-percent { color: #fff; font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; }
+        .ai-loading-actions { display: flex; justify-content: flex-end; margin-top: 16px; }
+        .ai-loading-close { min-width: 94px; padding: 10px 16px; border: 1px solid #2b3748; border-radius: 12px; background: rgba(11,15,22,0.88); color: #dfe7f5; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.18s ease; }
+        .ai-loading-close:hover { border-color: #4a5f7d; background: rgba(19,26,36,0.96); }
+        .ai-loading-close:active { transform: translateY(1px); }
         .ai-loading .spinner { width: 34px; height: 34px; border: 3px solid #2a2a2e; border-top-color: #2dd4a8; border-radius: 50%; animation: spin 0.8s linear infinite; flex-shrink: 0; }
         .ai-loading-head { display:flex; align-items:center; gap:14px; margin-bottom: 14px; }
         @keyframes spin { to { transform: rotate(360deg); } }
@@ -1104,7 +1117,10 @@
     <!-- AI 优化加载中 -->
     <div class="ai-loading" id="ai-loading">
         <div class="ai-loading-card" id="ai-loading-card">
-            <div class="ai-loading-eyebrow" id="ai-loading-eyebrow">AI Optimize</div>
+            <div class="ai-loading-topbar">
+                <div class="ai-loading-eyebrow" id="ai-loading-eyebrow">AI Optimize</div>
+                <button class="ai-loading-close" id="ai-loading-close-btn" type="button" onclick="handleAILoadingClose()">取消任务</button>
+            </div>
             <div class="ai-loading-head">
                 <div class="spinner"></div>
                 <div>
@@ -1115,8 +1131,13 @@
             <div class="ai-loading-bar"><div class="ai-loading-fill" id="ai-loading-fill"></div></div>
             <div class="ai-loading-meta">
                 <span class="ai-loading-step" id="ai-loading-step">准备开始</span>
-                <span class="ai-loading-percent" id="ai-loading-percent">0%</span>
+                <div class="ai-loading-metrics">
+                    <span class="ai-loading-timer" id="ai-loading-timer">00:00</span>
+                    <span class="ai-loading-percent" id="ai-loading-percent">0%</span>
+                </div>
             </div>
+            <div class="ai-loading-note" id="ai-loading-note">通常需要 3-5 分钟，大稿件可能更久。如果网络中断，弹窗会保留并展示失败原因。</div>
+            <div class="ai-loading-reason" id="ai-loading-reason" hidden></div>
         </div>
     </div>
 
@@ -3157,47 +3178,138 @@
     });
 
     let aiLoadingPulseTimer = null;
-    let lastAIPreflight = { key: '', apiUrl: '', model: '', at: 0 };
+    let aiLoadingClockTimer = null;
+    let aiLoadingStartedAt = 0;
+    let aiLoadingAbortController = null;
+    let aiLoadingStateMode = 'idle';
+    let aiLoadingUserCanceled = false;
 
-    function setAILoadingState(title, detail, progress, step, isError) {
+    function formatAILoadingDuration(ms) {
+        let totalSeconds = Math.max(0, Math.floor(ms / 1000));
+        let minutes = String(Math.floor(totalSeconds / 60)).padStart(2, '0');
+        let seconds = String(totalSeconds % 60).padStart(2, '0');
+        return minutes + ':' + seconds;
+    }
+
+    function refreshAILoadingClock() {
+        let timerEl = document.getElementById('ai-loading-timer');
+        if (!timerEl) return;
+        timerEl.textContent = aiLoadingStartedAt ? formatAILoadingDuration(Date.now() - aiLoadingStartedAt) : '00:00';
+    }
+
+    function resetAILoadingRuntime() {
+        if (aiLoadingClockTimer) clearInterval(aiLoadingClockTimer);
+        aiLoadingClockTimer = null;
+        aiLoadingStartedAt = Date.now();
+        refreshAILoadingClock();
+        aiLoadingClockTimer = setInterval(refreshAILoadingClock, 1000);
+    }
+
+    function clearAILoadingTimers() {
+        if (aiLoadingPulseTimer) clearInterval(aiLoadingPulseTimer);
+        if (aiLoadingClockTimer) clearInterval(aiLoadingClockTimer);
+        aiLoadingPulseTimer = null;
+        aiLoadingClockTimer = null;
+    }
+
+    function normalizeAIErrorMessage(err, fallbackLabel) {
+        let raw = (err && err.message) ? String(err.message) : String(err || '');
+        if (!raw || raw === 'undefined') return fallbackLabel || 'AI 请求失败';
+        if (raw === '__AI_USER_ABORT__') return '任务已取消';
+        if (/ERR_CONNECTION_CLOSED|Failed to fetch|NetworkError/i.test(raw)) {
+            return '无法连接到 AI 接口，通常是网络、代理、防火墙或 TLS 握手被中断导致。';
+        }
+        if (/timeout/i.test(raw)) return raw;
+        return raw;
+    }
+
+    function setAILoadingState(title, detail, progress, step, isError, extra) {
+        let options = extra || {};
         let card = document.getElementById('ai-loading-card');
         let titleEl = document.getElementById('ai-loading-title');
         let textEl = document.getElementById('ai-loading-text');
         let fillEl = document.getElementById('ai-loading-fill');
         let stepEl = document.getElementById('ai-loading-step');
         let percentEl = document.getElementById('ai-loading-percent');
-        if (card) card.classList.toggle('error', !!isError);
+        let noteEl = document.getElementById('ai-loading-note');
+        let reasonEl = document.getElementById('ai-loading-reason');
+        let closeBtn = document.getElementById('ai-loading-close-btn');
+        let spinner = document.querySelector('#ai-loading .spinner');
+        aiLoadingStateMode = isError ? 'error' : (options.mode || 'running');
+        if (card) {
+            card.classList.toggle('error', !!isError);
+            card.classList.toggle('success', aiLoadingStateMode === 'success');
+        }
         if (titleEl) titleEl.textContent = title || 'AI 正在处理';
         if (textEl) textEl.textContent = detail || '';
         if (fillEl) fillEl.style.width = Math.max(0, Math.min(100, progress || 0)) + '%';
         if (stepEl) stepEl.textContent = step || '处理中';
         if (percentEl) percentEl.textContent = Math.round(progress || 0) + '%';
+        if (noteEl) {
+            noteEl.textContent = options.note || '通常需要 3-5 分钟，大稿件可能更久。如果网络中断，弹窗会保留并展示失败原因。';
+        }
+        if (reasonEl) {
+            let reason = options.reason ? String(options.reason) : '';
+            reasonEl.textContent = reason;
+            reasonEl.hidden = !reason;
+        }
+        if (closeBtn) {
+            closeBtn.textContent = options.closeLabel || (aiLoadingStateMode === 'running' ? '取消任务' : '关闭');
+        }
+        if (spinner) {
+            spinner.style.animationPlayState = aiLoadingStateMode === 'running' ? 'running' : 'paused';
+            spinner.style.opacity = aiLoadingStateMode === 'error' ? '0.6' : '1';
+        }
     }
 
-    function openAILoading(title, detail, progress, step, isError) {
+    function openAILoading(title, detail, progress, step, isError, extra) {
         let loading = document.getElementById('ai-loading');
-        setAILoadingState(title, detail, progress, step, isError);
+        aiLoadingUserCanceled = false;
+        resetAILoadingRuntime();
+        setAILoadingState(title, detail, progress, step, isError, extra);
         loading.classList.add('active');
     }
 
     function closeAILoading() {
-        if (aiLoadingPulseTimer) clearInterval(aiLoadingPulseTimer);
-        aiLoadingPulseTimer = null;
+        clearAILoadingTimers();
+        aiLoadingStartedAt = 0;
+        aiLoadingAbortController = null;
+        aiLoadingStateMode = 'idle';
+        setAILoadingState('AI 正在处理', '', 0, '准备开始', false, { mode: 'idle', note: '', closeLabel: '取消任务' });
+        refreshAILoadingClock();
         document.getElementById('ai-loading').classList.remove('active');
     }
 
-    function startAILoadingPulse(from, to, stepLabel, detail) {
+    function handleAILoadingClose() {
+        if (aiLoadingStateMode === 'running') {
+            aiLoadingUserCanceled = true;
+            if (aiLoadingAbortController) aiLoadingAbortController.abort();
+            closeAILoading();
+            showToast('已取消 AI 优化');
+            return;
+        }
+        closeAILoading();
+    }
+
+    function startAILoadingTimeline(from, to, stepLabel, detail, durationMs, note) {
         if (aiLoadingPulseTimer) clearInterval(aiLoadingPulseTimer);
-        let current = from;
-        setAILoadingState('AI 正在优化排版', detail, current, stepLabel, false);
+        let startedAt = Date.now();
+        setAILoadingState('AI 正在优化排版', detail, from, stepLabel, false, {
+            note: note,
+            closeLabel: '取消任务'
+        });
         aiLoadingPulseTimer = setInterval(() => {
-            current = Math.min(to, current + Math.random() * 4 + 1.5);
-            setAILoadingState('AI 正在优化排版', detail, current, stepLabel, false);
-            if (current >= to && aiLoadingPulseTimer) {
+            let ratio = Math.min(1, (Date.now() - startedAt) / Math.max(2000, durationMs || 240000));
+            let current = from + (to - from) * ratio;
+            setAILoadingState('AI 正在优化排版', detail, current, stepLabel, false, {
+                note: note,
+                closeLabel: '取消任务'
+            });
+            if (ratio >= 1 && aiLoadingPulseTimer) {
                 clearInterval(aiLoadingPulseTimer);
                 aiLoadingPulseTimer = null;
             }
-        }, 380);
+        }, 600);
     }
 
     async function requestAICompletion(c, messages, extraOptions) {
@@ -3213,20 +3325,48 @@
         };
         if (options.max_tokens != null) body.max_tokens = options.max_tokens;
         if (options.stream != null) body.stream = options.stream;
-        return await fetch(c.apiUrl, {
-            method: 'POST',
-            headers: headers,
-            body: JSON.stringify(body)
-        });
+        let controller = new AbortController();
+        let timeoutMs = options.timeoutMs || 0;
+        let timeoutId = null;
+        if (options.attachToLoading) aiLoadingAbortController = controller;
+        if (timeoutMs > 0) {
+            timeoutId = setTimeout(() => controller.abort(new DOMException('timeout', 'AbortError')), timeoutMs);
+        }
+        try {
+            return await fetch(c.apiUrl, {
+                method: 'POST',
+                headers: headers,
+                body: JSON.stringify(body),
+                signal: controller.signal
+            });
+        } catch (err) {
+            if (err && err.name === 'AbortError') {
+                if (aiLoadingUserCanceled) throw new Error('__AI_USER_ABORT__');
+                let label = options.stageName || 'AI 请求';
+                let seconds = Math.max(1, Math.round((timeoutMs || 0) / 1000));
+                throw new Error(label + '超时，已等待约 ' + seconds + ' 秒。请检查网络后重试。');
+            }
+            let fallback = options.networkErrorLabel || ((options.stageName || 'AI 请求') + '未能连接到接口。请检查网络、代理或防火墙。');
+            throw new Error(normalizeAIErrorMessage(err, fallback));
+        } finally {
+            if (timeoutId) clearTimeout(timeoutId);
+            if (options.attachToLoading && aiLoadingAbortController === controller) aiLoadingAbortController = null;
+        }
     }
 
     async function verifyAIConnection(c) {
-        let cacheKey = [c.apiUrl, c.model, c.apiKey].join('::');
-        if (lastAIPreflight.key === cacheKey && (Date.now() - lastAIPreflight.at) < 120000) return true;
         let res = await requestAICompletion(c, [
             { role: 'system', content: '你是接口连通性检查助手，只回复 ok。' },
             { role: 'user', content: '请只回复 ok' }
-        ], { temperature: 0, max_tokens: 8, stream: false });
+        ], {
+            temperature: 0,
+            max_tokens: 8,
+            stream: false,
+            timeoutMs: 12000,
+            attachToLoading: true,
+            stageName: 'AI 预检',
+            networkErrorLabel: 'AI 预检未通过，当前网络无法连接到接口。'
+        });
         if (!res.ok) {
             let err = await res.text();
             throw new Error(res.status + ' ' + err.slice(0, 200));
@@ -3234,7 +3374,6 @@
         let data = await res.json();
         let content = data.choices?.[0]?.message?.content;
         if (!content || !/ok/i.test(String(content))) throw new Error('AI 接口返回异常，预检未通过');
-        lastAIPreflight = { key: cacheKey, apiUrl: c.apiUrl, model: c.model, at: Date.now() };
         return true;
     }
 
@@ -3391,12 +3530,21 @@
         }
         let preferredStyles = getPreviewStyleOverrides();
         let preferredH2Style = preferredStyles.h2style || 'A';
-        openAILoading('AI 优化准备中', '正在检查配置与接口状态…', 6, '准备开始', false);
+        openAILoading('AI 优化准备中', '正在检查配置与接口状态…', 4, '准备开始', false, {
+            note: '会先做真实预检，再发送正式优化请求。大稿件通常需要 3-5 分钟。',
+            closeLabel: '取消任务'
+        });
         try {
-            setAILoadingState('AI 接口预检中', '先做一次轻量请求，确认模型可用后再进入正式优化。', 18, '连通性检查', false);
+            setAILoadingState('AI 接口预检中', '先做一次轻量请求，确认当前网络和模型都可达。', 14, '连通性检查', false, {
+                note: '这个阶段通常 5-12 秒内完成；如果失败，通常是网络、代理、防火墙或 API 地址问题。',
+                closeLabel: '取消任务'
+            });
             await verifyAIConnection(c);
-            setAILoadingState('AI 接口已就绪', '接口连通正常，开始发送正式优化请求。', 30, '预检通过', false);
-            startAILoadingPulse(34, 78, 'AI 正在分析结构', '正在识别 front matter、章节标题、步骤摘要和组件化位置…');
+            setAILoadingState('AI 接口已就绪', '预检通过，开始发送正式优化请求。', 24, '预检通过', false, {
+                note: '预检只确认当前接口可达；如果正式优化中途断网，这里也会保留弹窗并显示失败原因。',
+                closeLabel: '取消任务'
+            });
+            startAILoadingTimeline(28, 88, 'AI 正在分析结构', '正在识别 front matter、章节标题、步骤摘要和组件化位置…', 240000, '通常需要 3-5 分钟，文章越长越久。请保持当前页面打开，若失败会自动展示原因。');
             let userPrompt = [
                 '请将以下 Markdown 改写成符合镜哥排版器模板的增强格式。',
                 '额外要求：',
@@ -3408,7 +3556,14 @@
             let res = await requestAICompletion(c, [
                 { role: 'system', content: AI_SYSTEM_PROMPT },
                 { role: 'user', content: userPrompt }
-            ], { temperature: 0.2, stream: false });
+            ], {
+                temperature: 0.2,
+                stream: false,
+                timeoutMs: 300000,
+                attachToLoading: true,
+                stageName: 'AI 正式优化请求',
+                networkErrorLabel: 'AI 正式优化请求没有成功连到接口，请检查网络或稍后重试。'
+            });
             if (!res.ok) {
                 let err = await res.text();
                 throw new Error(res.status + ' ' + err.slice(0, 200));
@@ -3422,7 +3577,10 @@
             }
             if (aiLoadingPulseTimer) clearInterval(aiLoadingPulseTimer);
             aiLoadingPulseTimer = null;
-            setAILoadingState('AI 正在整理结果', '正在统一章节编号、steps 字段和二级标题样式，避免出现漏掉的数字标题。', 86, '本地规则收口', false);
+            setAILoadingState('AI 正在整理结果', '正在统一章节编号、steps 字段和二级标题样式，避免出现漏掉的数字标题。', 92, '本地规则收口', false, {
+                note: '已经拿到 AI 结果，正在做最后的结构修正，马上完成。',
+                closeLabel: '取消任务'
+            });
             let polished = buildStructuredMarkdown(content, {
                 promoteStandaloneNumericTitles: true,
                 ensureH2Style: true,
@@ -3431,18 +3589,28 @@
             document.getElementById('markdown-input').value = polished.markdown;
             immediatePushHistory(polished.markdown);
             updatePreview();
-            setAILoadingState('AI 优化完成', '排版增强已完成，标题和步骤结构也已经统一。', 100, '完成', false);
-            setTimeout(() => closeAILoading(), 500);
+            setAILoadingState('AI 优化完成', '排版增强已完成，标题和步骤结构也已经统一。', 100, '完成', false, {
+                mode: 'success',
+                note: '这次优化已经完成，预览区也已同步刷新。',
+                closeLabel: '关闭'
+            });
+            setTimeout(() => closeAILoading(), 900);
             showToast('AI 优化完成：' + (polished.changes.length ? polished.changes.join(' + ') : '排版已更新'));
         } catch (err) {
             if (aiLoadingPulseTimer) clearInterval(aiLoadingPulseTimer);
             aiLoadingPulseTimer = null;
-            setAILoadingState('AI 优化失败', '接口调用或结果整理过程中出现问题，请检查 API 配置或稍后重试。', 100, '失败', true);
-            showToast('AI 调用失败: ' + (err.message || String(err)));
-            setTimeout(() => closeAILoading(), 1100);
+            if (aiLoadingUserCanceled || (err && err.message === '__AI_USER_ABORT__')) return;
+            let reason = normalizeAIErrorMessage(err, 'AI 优化失败');
+            setAILoadingState('AI 优化失败', '这次没有成功完成优化，请根据下方原因检查后重试。', 100, '失败', true, {
+                note: '弹窗会保留，方便你确认失败原因。修复后可以重新点击 AI 优化。',
+                reason: reason,
+                closeLabel: '关闭'
+            });
+            showToast('AI 调用失败: ' + reason);
         } finally {
             if (aiLoadingPulseTimer) clearInterval(aiLoadingPulseTimer);
             aiLoadingPulseTimer = null;
+            aiLoadingAbortController = null;
         }
     }
 
